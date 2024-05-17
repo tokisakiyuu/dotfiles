@@ -1,3 +1,0 @@
-return {
-  { "qnighy/lalrpop.vim" },
-}

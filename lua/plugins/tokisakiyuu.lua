@@ -1,4 +1,7 @@
 return {
+  -- *.lalrpop syntax highlight
+  { "qnighy/lalrpop.vim" },
+
   -- https://github.com/folke/noice.nvim
   {
     "folke/noice.nvim",
@@ -10,6 +13,13 @@ return {
           silent = true,
         },
       },
+    },
+  },
+
+  {
+    "nvim-lspconfig",
+    opts = {
+      inlay_hints = { enabled = false },
     },
   },
 }

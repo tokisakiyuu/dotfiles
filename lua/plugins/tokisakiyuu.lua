@@ -35,6 +35,18 @@ return {
   },
 
   {
+    "folke/zen-mode.nvim",
+    opts = {
+      window = {
+        options = {
+          number = false,
+          relativenumber = false,
+        },
+      },
+    },
+  },
+
+  {
     "akinsho/bufferline.nvim",
     keys = {
       { "<leader>b[", "<cmd>BufferLineMovePrev<CR>", desc = "Exchange with Prev Buffer" },

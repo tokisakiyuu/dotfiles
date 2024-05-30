@@ -31,6 +31,11 @@ return {
         -- sidebars = "transparent",
         -- floats = "transparent",
       },
+      on_highlights = function(hl)
+        hl.DiagnosticUnnecessary = {
+          fg = "#636da6",
+        }
+      end,
     },
   },
 

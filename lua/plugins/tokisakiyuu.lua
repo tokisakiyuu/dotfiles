@@ -150,4 +150,18 @@ return {
       },
     },
   },
+  {
+    "williamboman/mason.nvim",
+    opts = {
+      ui = {
+        border = "rounded",
+      },
+    },
+  },
+  {
+    "rcarriga/nvim-notify",
+    opts = {
+      top_down = false,
+    },
+  },
 }

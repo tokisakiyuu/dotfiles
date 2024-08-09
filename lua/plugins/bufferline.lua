@@ -11,7 +11,7 @@ return {
     opts = {
       options = {
         show_buffer_close_icons = false,
-        -- always_show_bufferline = true,
+        always_show_bufferline = true,
         separator_style = { "", "" },
         indicator = { style = "none" },
       },

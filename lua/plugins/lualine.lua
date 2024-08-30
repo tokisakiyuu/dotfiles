@@ -42,7 +42,7 @@ local insert_mode_sections = {
   lualine_c = {
     {
       "filename",
-      path = 4,
+      path = 1,
     },
   },
   lualine_x = { "mode" },

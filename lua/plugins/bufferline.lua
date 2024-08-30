@@ -14,6 +14,8 @@ return {
         always_show_bufferline = true,
         separator_style = { "", "" },
         indicator = { style = "none" },
+        persist_buffer_sort = false,
+        sort_by = "insert_after_current",
       },
       highlights = {
         tab_selected = {

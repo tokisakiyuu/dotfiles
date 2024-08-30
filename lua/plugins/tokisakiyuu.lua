@@ -52,13 +52,6 @@ return {
   },
 
   {
-    "rcarriga/nvim-notify",
-    opts = {
-      top_down = false,
-    },
-  },
-
-  {
     "folke/trouble.nvim",
     opts = {
       focus = true,

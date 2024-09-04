@@ -40,18 +40,6 @@ return {
   },
 
   {
-    "folke/zen-mode.nvim",
-    opts = {
-      window = {
-        options = {
-          number = false,
-          relativenumber = false,
-        },
-      },
-    },
-  },
-
-  {
     "folke/trouble.nvim",
     opts = {
       focus = true,

@@ -2,10 +2,12 @@ return {
   {
     "yetone/avante.nvim",
     event = "VeryLazy",
-    lazy = true,
+    lazy = false,
+    version = false,
     opts = {
       provider = "gemini", -- Need to set Environment variable `GEMINI_API_KEY`
     },
+    build = "make BUILD_FROM_SOURCE=true",
     dependencies = {
       "stevearc/dressing.nvim",
       "nvim-lua/plenary.nvim",

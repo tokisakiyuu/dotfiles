@@ -5,7 +5,11 @@ return {
     lazy = false,
     version = false,
     opts = {
-      provider = "gemini", -- Need to set Environment variable `GEMINI_API_KEY`
+      provider = "openai", -- Need to set Environment variable `OPENAI_API_KEY`
+      openai = {
+        endpoint = "https://api.moonshot.cn/v1",
+        model = "moonshot-v1-8k",
+      },
     },
     build = "make BUILD_FROM_SOURCE=true",
     dependencies = {

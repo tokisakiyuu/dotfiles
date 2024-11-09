@@ -1,7 +1,4 @@
 return {
-  -- *.lalrpop syntax highlight
-  { "qnighy/lalrpop.vim" },
-
   -- https://github.com/folke/noice.nvim
   {
     "folke/noice.nvim",

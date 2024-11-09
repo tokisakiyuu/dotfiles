@@ -10,13 +10,18 @@ return {
     },
     opts = {
       window = {
-        position = "current",
+        auto_expand_width = true,
         mappings = {
           ["P"] = { "toggle_preview", config = { use_float = true, use_image_nvim = true } },
         },
       },
       buffers = {
         show_unloaded = true,
+      },
+      default_component_configs = {
+        container = {
+          right_padding = 2,
+        },
       },
     },
   },

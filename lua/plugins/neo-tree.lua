@@ -10,7 +10,6 @@ return {
     },
     opts = {
       window = {
-        auto_expand_width = true,
         mappings = {
           ["P"] = { "toggle_preview", config = { use_float = true, use_image_nvim = true } },
         },

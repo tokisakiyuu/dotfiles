@@ -12,6 +12,9 @@ return {
           fg = "#636da6",
         }
       end,
+      on_colors = function(colors)
+        colors.border = "#636da6"
+      end,
     },
   },
 

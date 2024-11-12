@@ -1,18 +1,4 @@
 return {
-  -- https://github.com/LazyVim/LazyVim/discussions/830#discussioncomment-7757328
-  {
-    "folke/noice.nvim",
-    opts = {
-      lsp = {
-        hover = {
-          -- Set not show a message if hover is not available
-          -- ex: shift+k on Typescript code
-          silent = true,
-        },
-      },
-    },
-  },
-
   {
     "folke/tokyonight.nvim",
     opts = {

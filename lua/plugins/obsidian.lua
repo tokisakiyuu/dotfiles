@@ -32,6 +32,29 @@ return {
         },
       },
 
+      preferred_link_style = "markdown",
+      disable_frontmatter = true,
+      open_app_foreground = true,
+
+      ---@return string
+      note_id_func = function(title)
+        local suffix = ""
+        if title ~= nil then
+          -- If title is given, transform it into valid file name.
+          suffix = title:gsub(" ", "-"):gsub("[^A-Za-z0-9-]", ""):lower()
+        else
+          -- If title is nil, just add 4 random uppercase letters to the suffix.
+          for _ = 1, 4 do
+            suffix = suffix .. string.char(math.random(65, 90))
+          end
+        end
+        return suffix .. "-" .. tostring(os.time())
+      end,
+
+      markdown_link_func = function(opts)
+        return require("obsidian.util").markdown_link(opts)
+      end,
+
       follow_img_func = function(img)
         vim.fn.jobstart({ "qlmanage", "-p", img }) -- Mac OS quick look preview
         -- vim.fn.jobstart({"xdg-open", url})  -- linux
@@ -60,6 +83,19 @@ return {
           path = client:vault_relative_path(path) or path
           return string.format("![%s](%s)", path.name, path)
         end,
+      },
+
+      templates = {
+        folder = "templates",
+        date_format = "%Y-%m-%d",
+        time_format = "%H:%M",
+        -- A map for custom variables, the key should be the variable and the value a function
+        substitutions = {
+          foo = "bar",
+          cow = function()
+            return "moo"
+          end,
+        },
       },
     },
   },

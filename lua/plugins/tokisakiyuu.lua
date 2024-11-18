@@ -40,13 +40,4 @@ return {
       },
     },
   },
-
-  {
-    "3rd/image.nvim",
-    opts = {
-      backend = "kitty",
-      -- Required to brew install imagemagick
-      processor = "magick_cli",
-    },
-  },
 }

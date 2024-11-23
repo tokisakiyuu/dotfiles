@@ -34,7 +34,7 @@ stow .
 ## Notes
 
 - [Managing dotfiles using GNU Stow on macOS](https://dev.to/hitblast/managing-configuration-using-gnu-stow-on-macos-5ff6)
-- [`GNU Stow`](https://www.gnu.org/software/stow/)
+- [GNU Stow](https://www.gnu.org/software/stow/)
 - [stow: .stow-local-ignore file](https://www.gnu.org/software/stow/manual/html_node/Types-And-Syntax-Of-Ignore-Lists.html)
 - [stow: .stowrc file](https://www.gnu.org/software/stow/manual/html_node/Resource-Files.html)
 - [Brew Bundle Brewfile Tips](https://gist.github.com/ChristopherA/a579274536aab36ea9966f301ff14f3f)

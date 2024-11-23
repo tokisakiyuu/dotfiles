@@ -33,7 +33,7 @@ stow .
 
 ## Adding new file to package
 
-有时，一些程序所需的配置文件会增加，所以我需要将新增的文件手动纳入package的管理。例如，我在`~/.config/fish/functions/`中新增了一个`foo.fish`，我需要做的是
+有时，一些程序所需的配置文件会增加，这些增加的配置文件是由程序自动创建的，它们只会在原来的位置创建，所以我需要将新增的文件手动纳入package的管理。例如，我在`~/.config/fish/functions/`中新增了一个`foo.fish`，我需要做的是
 
 1. 复制`foo.fish`到package中相应的位置
 

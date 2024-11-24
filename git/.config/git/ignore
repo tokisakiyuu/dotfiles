@@ -1,0 +1,15 @@
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Node.js
+node_modules
+
+# General
+log/
+*.log
+.env
+.env.*
+!.env.example

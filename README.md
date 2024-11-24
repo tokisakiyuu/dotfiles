@@ -21,72 +21,57 @@ cd ~/.dotfiles
 例如，需要在此机器上安装kitty
 
 ```bash
-cd kitty
-bash install
+stow kitty
 ```
-
-对于那些我没写`install`脚本的package，只需要简单地执行
-
-```bash
-stow .
-```
-
-## Adding new file to package
-
-有时，一些程序所需的配置文件会增加，这些增加的配置文件是由程序自动创建的，它们只会在原来的位置创建，所以我需要将新增的文件手动纳入package的管理。例如，我在`~/.config/fish/functions/`中新增了一个`foo.fish`，我需要做的是
-
-1. 复制`foo.fish`到package中相应的位置
-
-```bash
-cp ~/.config/fish/functions/foo.fish ~/.dotfiles/fish/functions/
-```
-
-2. 创建符号链接
-
-```bash
-cd ~/.dotfiles/fish
-stow --adopt .
-```
-
-这样就可以了。
-
-有种特殊情况，就是新增了大量需要纳入package管理的配置文件，且它们还有可能分布在不同的文件夹中，需要找到这些配置的共同父文件夹，假设是`~/.config/fish`然后递归复制
-
-```bash
-cp -r -i ~/.config/fish/* ~/.dotfiles/fish/
-```
-
-这样能够保持正确的文件结构复制进package里面，但是应该会看到一大堆这样的提示
-
-```
-cp: xxx/a.txt and a.txt are identical (not copied).
-```
-
-这是因为`cp`命令并不会过滤符号链接，这样的操作相当于是把一些符号链接也尝试复制到它们的源路径了。这只是提示并跳过，过程应该不会出错。
 
 ## Adding new package
 
-这个过程和上面类似
+假设，新的package名为`face`，它的配置文件集中在`~/.config/x/y/face`。
 
-1. 将已经存在的配置文件夹整个复制进来
+1. 在`~/.dotfiles/face`目录下创建相同的目录结构`.config/x/y`
 
-```bash
-cp ~/.config/xxx ~/.dotfiles/xxx/
-```
-
-2. 创建stow配置文件
+2. 将配置文件移动到对应目录下（移动前记得拷贝备份）
 
 ```bash
-cd ~/.dotfiles/xxx
-echo "--target=$HOME/.config/xxx" > .stowrc
-echo -e ".stowrc\nREADME\\.md\ninstall" > .stow-local-ignore
+mv ~/.config/x/y/face ~/.dotfiles/face/.config/x/y/
 ```
 
-3. 然后创建符号链接
+3. 创建链接
 
 ```bash
-stow --adopt .
+cd ~/.dotfiles
+stow face
 ```
+
+## Stow Guide
+
+- 创建链接
+
+```bash
+stow <package>
+```
+
+它会按照package中的目录结构，在当前目录的上一级，也就是`~`（当前目录是`~/.dotfiles`的话）下，创建相应的符号链接。
+
+- 删除链接
+
+```bash
+stow -D <package>
+```
+
+与上面完全相反的操作，也就是清理符号链接。
+
+- 应用本地文件
+
+```bash
+stow --adopt <package>
+```
+
+将原本在机器上的文件内容，写进package对应文件中（如果有的话），这意味着package中对应的文件的内容会被**覆盖**，这些被覆盖的内容一般是来自别的机器的配置，所以要配合git来酌情处理合并或丢弃。
+
+- 不想让package中的某些文件被生成链接
+
+需要在package的根目录创建`.stow-local-ignore`文件，将不想链接的文件追加进去，支持正则匹配，详细见下方。有一点需要注意的是，忽略的文件或目录也只能是存在于package的根目录。例如，上例中的`face`我配置了忽略`auth.cert`文件，`face/auth.cert`可以被忽略，但是`face/x/y/auth.cert`不会被忽略。
 
 ## Notes
 

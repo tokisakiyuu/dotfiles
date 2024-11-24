@@ -18,10 +18,16 @@ cd ~/.dotfiles
 
 2. 按需安装package
 
-例如，需要在此机器上安装kitty
+例如，需要在此机器上安装`kitty`
 
 ```bash
 stow kitty
+```
+
+3. 如果package依赖了`~/.secrets`中的文件（比如`git`），则还需要在当前目录手动创建`secrets`package（从`secrets.example`复制结构），然后填写依赖文件中的机密部分，再将`secrets`创建链接
+
+```bash
+stow secrets
 ```
 
 ## Adding new package

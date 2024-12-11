@@ -2,7 +2,7 @@ if status is-interactive
     # Commands to run in interactive sessions can go here
 end
 
-# Terminal shell prompt (installed by brew)
+# Terminal shell prompt (installed by Homebrew)
 # https://starship.rs/
 starship init fish | source
 # Suppress all startship warnings
@@ -32,3 +32,7 @@ set -gx LANG "en_US.UTF-8"
 
 # avante.nvim API Key
 set -gx OPENAI_API_KEY (keychain-env KIMI_API_KEY)
+
+# zoxide, z command (installed by Homebrew)
+set -gx _ZO_DATA_DIR "$HOME/.local/share/z"
+zoxide init fish | source

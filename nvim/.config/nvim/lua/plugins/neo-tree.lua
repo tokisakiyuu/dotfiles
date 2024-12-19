@@ -1,13 +1,6 @@
 return {
   {
     "nvim-neo-tree/neo-tree.nvim",
-    keys = {
-      {
-        "<leader>bb",
-        "<cmd>Neotree source=buffers reveal=true position=bottom<CR> ",
-        desc = "NeoTree Buffers",
-      },
-    },
     opts = {
       window = {
         position = "left",

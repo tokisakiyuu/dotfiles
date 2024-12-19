@@ -17,17 +17,15 @@ return {
   {
     "akinsho/git-conflict.nvim",
     version = "*",
-    opts = function()
-      local map = LazyVim.safe_keymap_set
-      map("n", "[x", "<cmd>GitConflictPrevConflict<cr>", { desc = "Move to the previous conflict" })
-      map("n", "]x", "<cmd>GitConflictNextConflict<cr>", { desc = "Move to the next conflict" })
-
-      return {
-        default_mappings = false,
-        list_opener = "",
-        disable_diagnostics = true,
-        config = true,
-      }
-    end,
+    keys = {
+      { "[x", "<cmd>GitConflictPrevConflict<cr>", desc = "Move to the previous conflict", mode = "n" },
+      { "]x", "<cmd>GitConflictNextConflict<cr>", desc = "Move to the next conflict", mode = "n" },
+    },
+    opts = {
+      default_mappings = false,
+      list_opener = "",
+      disable_diagnostics = true,
+      config = true,
+    },
   },
 }

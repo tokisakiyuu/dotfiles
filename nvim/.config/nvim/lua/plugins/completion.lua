@@ -19,9 +19,6 @@ return {
         menu = {
           winhighlight = "Normal:MyCmpMeum,CursorLine:MyCmpMenuSelection,FloatBorder:BlinkCmpMenuBorder,Search:None",
         },
-        trigger = {
-          show_on_x_blocked_trigger_characters = { "'", '"', "(", "{" },
-        },
       },
     },
   },

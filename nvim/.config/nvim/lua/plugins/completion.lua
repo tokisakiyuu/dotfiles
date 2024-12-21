@@ -7,14 +7,11 @@ vim.api.nvim_set_hl(0, "MyCmpMenuSelection", {
   bg = "#3619AA",
 })
 
--- https://github.com/Saghen/blink.cmp?tab=readme-ov-file#configuration
+-- https://cmp.saghen.dev/configuration/general.html
 return {
   {
     "Saghen/blink.cmp",
     opts = {
-      sources = {
-        default = { "lsp", "buffer", "path" },
-      },
       completion = {
         menu = {
           winhighlight = "Normal:MyCmpMeum,CursorLine:MyCmpMenuSelection,FloatBorder:BlinkCmpMenuBorder,Search:None",

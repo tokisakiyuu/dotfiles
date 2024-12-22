@@ -17,6 +17,9 @@ return {
           winhighlight = "Normal:MyCmpMeum,CursorLine:MyCmpMenuSelection,FloatBorder:BlinkCmpMenuBorder,Search:None",
         },
       },
+      keymap = {
+        preset = "default", -- no be accepted if press enter
+      },
     },
   },
 }

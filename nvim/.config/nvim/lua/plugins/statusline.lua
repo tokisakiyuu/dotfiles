@@ -1,8 +1,12 @@
 local function get_short_branch_name()
   local branch_name = vim.fn.systemlist("git rev-parse --abbrev-ref HEAD")[1]
+  local issue_key = string.match(branch_name, "^DEV%-%d+")
   if branch_name then
-    branch_name = string.sub(branch_name, 1, 16) -- 截取前 16 个字符
-    return branch_name
+    if issue_key then
+      return issue_key
+    else
+      return string.sub(branch_name, 1, 20)
+    end
   else
     return nil
   end

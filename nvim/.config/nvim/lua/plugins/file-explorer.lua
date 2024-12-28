@@ -1,10 +1,29 @@
 local function contains(arr, str)
-  for i, v in ipairs(arr) do
+  for _, v in ipairs(arr) do
     if v == str then
       return true
     end
   end
   return false
+end
+
+local function toggle_view(dir)
+  local oil = require("oil")
+  local util = require("oil.util")
+  local buf = vim.api.nvim_get_current_buf()
+  if util.is_oil_bufnr(buf) then
+    oil.close()
+  else
+    oil.open(dir)
+  end
+end
+
+local function open_in_current_dir()
+  return toggle_view()
+end
+
+local function open_in_cwd_dir()
+  return toggle_view(vim.fn.getcwd())
 end
 
 return {
@@ -13,17 +32,13 @@ return {
     keys = {
       {
         "<leader>e",
-        function()
-          require("oil").open()
-        end,
+        open_in_current_dir,
         desc = "Open oil browser (current dir)",
       },
       {
         "<leader>E",
-        function()
-          require("oil").open(vim.fn.getcwd())
-        end,
-        desc = "Open oil browser (workdir)",
+        open_in_cwd_dir,
+        desc = "Open oil browser (cwd)",
       },
     },
     ---@module 'oil'
@@ -32,7 +47,7 @@ return {
       view_options = {
         show_hidden = true,
         is_always_hidden = function(name)
-          return contains({ ".DS_Store", ".git" }, name)
+          return contains({ ".DS_Store", ".git", ".." }, name)
         end,
       },
       use_default_keymaps = false,
@@ -41,11 +56,24 @@ return {
         ["<CR>"] = "actions.select",
         ["<C-p>"] = "actions.preview",
         ["q"] = { "actions.close", mode = "n" },
-        ["-"] = { "actions.parent", mode = "n" },
         ["_"] = { "actions.open_cwd", mode = "n" },
-        ["<S-s>"] = { "actions.change_sort", mode = "n" },
+        ["gs"] = { "actions.change_sort", mode = "n" },
         ["gx"] = "actions.open_external",
         ["g."] = { "actions.toggle_hidden", mode = "n" },
+        ["-"] = {
+          desc = "Goto parent dir",
+          mode = "n",
+          callback = function()
+            local oil = require("oil")
+            local path = require("oil.pathutil")
+            local buf = vim.api.nvim_get_current_buf()
+            local dir = oil.get_current_dir(buf)
+            local cwd = vim.fn.getcwd() .. "/"
+            if dir ~= nil and cwd ~= dir then
+              oil.open(path.parent(dir))
+            end
+          end,
+        },
       },
     },
     -- Optional dependencies
@@ -56,33 +84,5 @@ return {
   {
     "nvim-neo-tree/neo-tree.nvim",
     enabled = false,
-    --   opts = {
-    --     window = {
-    --       position = "left",
-    --       mappings = {
-    --         ["P"] = { "toggle_preview", config = { use_float = true, use_image_nvim = true } },
-    --       },
-    --     },
-    --     buffers = {
-    --       show_unloaded = true,
-    --     },
-    --     filesystem = {
-    --       filtered_items = {
-    --         hide_dotfiles = false,
-    --         hide_by_name = {
-    --           ".git",
-    --           ".DS_Store",
-    --         },
-    --         always_show = {
-    --           ".env",
-    --         },
-    --       },
-    --     },
-    --     default_component_configs = {
-    --       container = {
-    --         right_padding = 2,
-    --       },
-    --     },
-    --   },
   },
 }

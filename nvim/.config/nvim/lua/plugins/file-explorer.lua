@@ -33,7 +33,7 @@ return {
       {
         "<leader>e",
         open_in_current_dir,
-        desc = "Open oil browser (current dir)",
+        desc = "Open oil browser",
       },
       {
         "<leader>E",

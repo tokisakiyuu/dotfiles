@@ -38,6 +38,9 @@ return {
           border = "rounded",
         },
       },
+      notifier = {
+        style = "fancy",
+      },
     },
   },
 

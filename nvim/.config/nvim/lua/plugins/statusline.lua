@@ -1,20 +1,3 @@
-local function get_short_branch_name()
-  local branch_name = vim.fn.system({ "git", "rev-parse", "--abbrev-ref", "HEAD" })
-  local issue_key = string.match(branch_name, "^DEV%-%d+")
-  if branch_name then
-    if issue_key then
-      return issue_key
-    else
-      return string.sub(branch_name, 1, 20)
-    end
-  else
-    return nil
-  end
-end
-
-local branch = get_short_branch_name()
-local branch_icon = "" -- e0a0
-
 local sections = {
   lualine_a = {},
   lualine_b = { "mode" },
@@ -31,9 +14,13 @@ local sections = {
       cond = function() return package.loaded["noice"] and require("noice").api.status.mode.has() end,
       color = function() return { fg = Snacks.util.color("Constant") } end,
     },
-    function()
-      return branch_icon .. " " .. branch
-    end,
+    {
+      "branch",
+      fmt = function(str)
+        local b = vim.fn.system({ "sed", "-E", "s/^(DEV-[0-9]+(-[0-9]+)?)-.*/\\1/" }, str)
+        return b
+      end,
+    },
   },
   lualine_y = {},
   lualine_z = {},

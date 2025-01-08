@@ -1,5 +1,5 @@
 local function get_short_branch_name()
-  local branch_name = vim.fn.systemlist("git rev-parse --abbrev-ref HEAD")[1]
+  local branch_name = vim.fn.system({ "git", "rev-parse", "--abbrev-ref", "HEAD" })
   local issue_key = string.match(branch_name, "^DEV%-%d+")
   if branch_name then
     if issue_key then

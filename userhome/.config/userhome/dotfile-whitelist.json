@@ -1,0 +1,15 @@
+[
+  ".CFUserTextEncoding",
+  ".DS_Store",
+  ".Trash",
+  ".cache",
+  ".config",
+  ".dotfiles",
+  ".local",
+  ".mongodb",
+  ".npm",
+  ".viminfo",
+  ".yarn",
+  ".yarnrc"
+]
+

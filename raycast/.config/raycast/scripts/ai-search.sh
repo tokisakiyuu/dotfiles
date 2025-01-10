@@ -13,4 +13,4 @@
 # @raycast.author tokisakiyuu
 # @raycast.authorURL tokisakiyuu.com
 
-shortcuts run "Mac AI Search" --input-path "$1"
+echo $1 | shortcuts run "Mac AI Search"

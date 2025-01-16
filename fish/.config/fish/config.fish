@@ -42,3 +42,6 @@ set -gx LANG "en_US.UTF-8"
 # zoxide, z command (installed by Homebrew)
 set -gx _ZO_DATA_DIR "$HOME/.local/share/z"
 zoxide init fish | source
+
+# Command Editor command
+set -gx EDITOR /opt/homebrew/bin/nvim

@@ -4,6 +4,7 @@ return {
     event = "BufReadPre",
     opts = {
       branch = false,
+      need = 2,
     },
   },
 }

@@ -1,15 +1,65 @@
 [
-  ".CFUserTextEncoding",
-  ".DS_Store",
-  ".Trash",
-  ".cache",
-  ".config",
-  ".dotfiles",
-  ".local",
-  ".mongodb",
-  ".npm",
-  ".viminfo",
-  ".yarn",
-  ".yarnrc"
+  {
+    "name": ".CFUserTextEncoding",
+    "desc": "stores the default text encoding and preferred language for a user.",
+    "url": "https://superuser.com/questions/82123/mac-whats-cfusertextencoding-for"
+  },
+  {
+    "name": ".DS_Store"
+  },
+  {
+    "name": ".Trash"
+  },
+  {
+    "name": ".cache",
+    "desc": "part of XDG Base Dir Spec",
+    "url": "https://wiki.archlinux.org/title/XDG_Base_Directory"
+  },
+  {
+    "name": ".config",
+    "desc": "part of XDG Base Dir Spec",
+    "url": "https://wiki.archlinux.org/title/XDG_Base_Directory"
+  },
+  {
+    "name": ".dotfiles",
+    "desc": "dotfiles git repository"
+  },
+  {
+    "name": ".local",
+    "desc": "part of XDG Base Dir Spec",
+    "url": "https://wiki.archlinux.org/title/XDG_Base_Directory"
+  },
+  {
+    "name": ".mongodb",
+    "desc": "mongosh's runtime cache"
+  },
+  {
+    "name": ".npm",
+    "desc": "npm runtime cache"
+  },
+  {
+    "name": ".viminfo",
+    "desc": "vim runtime cache"
+  },
+  {
+    "name": ".yarn",
+    "desc": "yarn runtime cache"
+  },
+  {
+    "name": ".yarnrc",
+    "desc": "yarn global config file"
+  },
+  {
+    "name": ".ssh",
+    "desc": "ssh runtime cache"
+  },
+  {
+    "name": ".colima",
+    "desc": "colima runtime cache. Docker Runtime. Container runtimes on macOS (and Linux) with minimal setup. Use with Docker",
+    "url": "https://github.com/abiosoft/colima"
+  },
+  {
+    "name": ".docker",
+    "desc": "docker runtime cache"
+  }
 ]
-

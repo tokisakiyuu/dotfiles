@@ -16,6 +16,11 @@ return {
         menu = {
           winhighlight = "Normal:MyCmpMeum,CursorLine:MyCmpMenuSelection,FloatBorder:BlinkCmpMenuBorder,Search:None",
         },
+        list = {
+          selection = {
+            auto_insert = false,
+          },
+        },
       },
       keymap = {
         preset = "default", -- no be accepted if press enter

@@ -1,3 +1,7 @@
+# Configured in the secret file
+[credential]
+    helper = ""
+
 # Local/private config goes in the include
 [include]
 	path = ./config.secret

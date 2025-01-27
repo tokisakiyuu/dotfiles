@@ -29,16 +29,3 @@
     keepBackup = false
 [mergetool "nvimdiff"]
     layout = "LOCAL,BASE,REMOTE / MERGED"
-
-# Diff tool
-[core]
-    pager = delta
-    editor = nvim
-[interactive]
-    diffFilter = delta --color-only
-[delta]
-    navigate = true    # use n and N to move between diff sections
-    line-numbers = true
-    # side-by-side = true
-[diff]
-    colorMoved = default

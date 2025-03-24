@@ -1,21 +1,25 @@
--- https://color.adobe.com/create/color-wheel
-vim.api.nvim_set_hl(0, "MyCmpMeum", {
-  bg = "#1B0C53",
-})
-
-vim.api.nvim_set_hl(0, "MyCmpMenuSelection", {
-  bg = "#3619AA",
+vim.api.nvim_create_autocmd("User", {
+  pattern = "LazyLoad",
+  callback = function(event)
+    if event.data == "blink.cmp" then
+      vim.api.nvim_set_hl(0, "BlinkCmpMenu", {
+        bg = "#1B0C53",
+      })
+      vim.api.nvim_set_hl(0, "BlinkCmpMenuSelection", {
+        bg = "#3619AA",
+      })
+    end
+  end,
 })
 
 -- https://cmp.saghen.dev/configuration/general.html
 return {
   {
-    "Saghen/blink.cmp",
+    "saghen/blink.cmp",
+    ---@module 'blink.cmp'
+    ---@type blink.cmp.Config
     opts = {
       completion = {
-        menu = {
-          winhighlight = "Normal:MyCmpMeum,CursorLine:MyCmpMenuSelection,FloatBorder:BlinkCmpMenuBorder,Search:None",
-        },
         list = {
           selection = {
             auto_insert = false,

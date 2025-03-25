@@ -15,7 +15,7 @@ vim.api.nvim_create_autocmd("User", {
 -- https://cmp.saghen.dev/configuration/general.html
 return {
   {
-    "saghen/blink.cmp",
+    "Saghen/blink.cmp",
     ---@module 'blink.cmp'
     ---@type blink.cmp.Config
     opts = {

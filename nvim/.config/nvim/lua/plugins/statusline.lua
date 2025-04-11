@@ -17,8 +17,8 @@ local sections = {
     {
       "branch",
       fmt = function(str)
-        local b = vim.fn.system({ "sed", "-E", "s/^(DEV-[0-9]+(-[0-9]+)?)-.*/\\1/" }, str)
-        return b
+        local b = vim.fn.system({ "sed", "-E", "s/^(DEV-[0-9]+(-[0-9]+)?)-.*/\\1/I" }, str)
+        return string.upper(b)
       end,
     },
   },

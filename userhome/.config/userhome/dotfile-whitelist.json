@@ -61,5 +61,13 @@
   {
     "name": ".docker",
     "desc": "docker runtime cache"
+  },
+  {
+    "name": ".cargo",
+    "desc": "rust package manager (installed by rustup)"
+  },
+  {
+    "name": ".rustup",
+    "desc": "rust toolchain manager (installed by homebrew)"
   }
 ]

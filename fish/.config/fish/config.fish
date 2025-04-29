@@ -30,8 +30,8 @@ set -g fish_greeting ''
 set -gx PNPM_HOME "$HOME/.local/share/pnpm"
 set -gx PATH "$PNPM_HOME:$PATH"
 
-# Cargo
-set -gx PATH "$HOME/.local/share/cargo/bin:$PATH"
+# Rust Toolchains
+set -gx PATH "$HOME/.rustup/toolchains/stable-aarch64-apple-darwin/bin:$PATH"
 
 # Terminal programs UI language
 set -gx LANG "en_US.UTF-8"

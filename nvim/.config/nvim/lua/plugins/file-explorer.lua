@@ -30,13 +30,28 @@ return {
       {
         "<leader>e",
         function()
-          require("mini.files").open(vim.api.nvim_buf_get_name(0), false)
+          local fs = require("mini.files")
+          fs.open(vim.api.nvim_buf_get_name(0), false)
+          fs.reveal_cwd()
         end,
         desc = "Open mini explorer",
       },
+      {
+        "<C-s>",
+        function()
+          local fs = require("mini.files")
+          fs.synchronize()
+        end,
+        desc = "Synchronize changes",
+      },
     },
     config = function()
-      require("mini.files").setup({})
+      require("mini.files").setup({
+        mappings = {
+          go_in_plus = "<Enter>",
+          go_out_plus = "",
+        },
+      })
     end,
   },
 

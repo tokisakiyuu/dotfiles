@@ -22,23 +22,31 @@ local function open_in_current_dir()
   return toggle_view()
 end
 
-local function open_in_cwd_dir()
-  return toggle_view(vim.fn.getcwd())
-end
-
 return {
+  {
+    "echasnovski/mini.files",
+    version = "*",
+    keys = {
+      {
+        "<leader>e",
+        function()
+          require("mini.files").open(vim.api.nvim_buf_get_name(0), false)
+        end,
+        desc = "Open mini explorer",
+      },
+    },
+    config = function()
+      require("mini.files").setup({})
+    end,
+  },
+
   {
     "stevearc/oil.nvim",
     keys = {
       {
-        "<leader>e",
-        open_in_current_dir,
-        desc = "Open oil browser",
-      },
-      {
         "<leader>E",
-        open_in_cwd_dir,
-        desc = "Open oil browser (cwd)",
+        open_in_current_dir,
+        desc = "Open oil explorer",
       },
     },
     ---@module 'oil'

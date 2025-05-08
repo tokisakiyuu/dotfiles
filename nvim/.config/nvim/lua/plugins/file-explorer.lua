@@ -36,20 +36,13 @@ return {
         end,
         desc = "Open mini explorer",
       },
-      {
-        "<C-s>",
-        function()
-          local fs = require("mini.files")
-          fs.synchronize()
-        end,
-        desc = "Synchronize changes",
-      },
     },
     config = function()
       require("mini.files").setup({
         mappings = {
           go_in_plus = "<Enter>",
           go_out_plus = "",
+          synchronize = "<C-s>",
         },
       })
     end,

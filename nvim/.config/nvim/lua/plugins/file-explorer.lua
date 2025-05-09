@@ -22,6 +22,18 @@ local function open_in_current_dir()
   return toggle_view()
 end
 
+vim.api.nvim_create_autocmd("User", {
+  pattern = "MiniFilesBufferCreate",
+  callback = function(args)
+    local fs = require("mini.files")
+    local buf_id = args.data.buf_id
+
+    vim.keymap.set("n", "~", function()
+      fs.open(vim.fn.getcwd())
+    end, { buffer = buf_id, desc = "Go to cwd" })
+  end,
+})
+
 return {
   {
     "echasnovski/mini.files",

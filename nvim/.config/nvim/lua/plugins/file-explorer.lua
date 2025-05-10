@@ -43,8 +43,7 @@ return {
         "<leader>e",
         function()
           local fs = require("mini.files")
-          fs.open(vim.api.nvim_buf_get_name(0), false)
-          fs.reveal_cwd()
+          fs.open(vim.api.nvim_buf_get_name(0), true)
         end,
         desc = "Open mini explorer",
       },
@@ -52,9 +51,23 @@ return {
     config = function()
       require("mini.files").setup({
         mappings = {
+          go_in = "L",
+          go_out = "H",
           go_in_plus = "<Enter>",
           go_out_plus = "",
           synchronize = "<C-s>",
+        },
+        windows = {
+          -- Maximum number of windows to show side by side
+          max_number = math.huge,
+          -- Whether to show preview of file/directory under cursor
+          preview = true,
+          -- Width of focused window
+          width_focus = 25,
+          -- Width of non-focused window
+          width_nofocus = 25,
+          -- Width of preview window
+          width_preview = 50,
         },
       })
     end,

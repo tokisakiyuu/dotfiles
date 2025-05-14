@@ -1,4 +1,33 @@
+vim.opt.pumblend = 0
+vim.opt.winblend = 0
+
 return {
+  {
+    "williamboman/mason.nvim",
+    opts = {
+      ui = {
+        border = "rounded",
+      },
+    },
+  },
+  {
+    "folke/noice.nvim",
+    opts = {
+      presets = {
+        lsp_doc_border = true,
+      },
+    },
+  },
+  {
+    "neovim/nvim-lspconfig",
+    opts = {
+      diagnostics = {
+        float = {
+          border = "rounded",
+        },
+      },
+    },
+  },
   {
     "folke/tokyonight.nvim",
     opts = {
@@ -17,14 +46,6 @@ return {
       end,
     },
   },
-
-  {
-    "folke/trouble.nvim",
-    opts = {
-      focus = true,
-    },
-  },
-
   {
     "folke/snacks.nvim",
     priority = 1000,
@@ -42,10 +63,5 @@ return {
         style = "fancy",
       },
     },
-  },
-
-  {
-    "nvzone/showkeys",
-    cmd = "ShowkeysToggle",
   },
 }

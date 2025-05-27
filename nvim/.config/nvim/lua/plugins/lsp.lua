@@ -19,4 +19,12 @@ return {
       codelens = { enabled = false },
     },
   },
+  {
+    "nvim-treesitter/nvim-treesitter",
+    opts = {
+      ensure_installed = {
+        "graphql",
+      },
+    },
+  },
 }

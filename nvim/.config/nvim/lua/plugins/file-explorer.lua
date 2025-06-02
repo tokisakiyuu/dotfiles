@@ -1,27 +1,3 @@
-local function contains(arr, str)
-  for _, v in ipairs(arr) do
-    if v == str then
-      return true
-    end
-  end
-  return false
-end
-
-local function toggle_view(dir)
-  local oil = require("oil")
-  local util = require("oil.util")
-  local buf = vim.api.nvim_get_current_buf()
-  if util.is_oil_bufnr(buf) then
-    oil.close()
-  else
-    oil.open(dir)
-  end
-end
-
-local function open_in_current_dir()
-  return toggle_view()
-end
-
 vim.api.nvim_create_autocmd("User", {
   pattern = "MiniFilesBufferCreate",
   callback = function(args)
@@ -78,7 +54,7 @@ return {
     keys = {
       {
         "<leader>E",
-        open_in_current_dir,
+        "<CMD>Oil<CR>",
         desc = "Open oil explorer",
       },
     },
@@ -88,33 +64,21 @@ return {
       view_options = {
         show_hidden = true,
         is_always_hidden = function(name)
-          return contains({ ".DS_Store", ".git", ".." }, name)
+          return name:match("^%.%.") ~= nil
         end,
       },
       use_default_keymaps = false,
       keymaps = {
         ["g?"] = { "actions.show_help", mode = "n" },
-        ["<CR>"] = "actions.select",
         ["<C-p>"] = "actions.preview",
+        ["<C-l"] = "actions.refresh",
         ["q"] = { "actions.close", mode = "n" },
-        ["_"] = { "actions.open_cwd", mode = "n" },
+        ["@"] = { "actions.open_cwd", mode = "n" },
         ["gs"] = { "actions.change_sort", mode = "n" },
         ["gx"] = "actions.open_external",
         ["g."] = { "actions.toggle_hidden", mode = "n" },
-        ["-"] = {
-          desc = "Goto parent dir",
-          mode = "n",
-          callback = function()
-            local oil = require("oil")
-            local path = require("oil.pathutil")
-            local buf = vim.api.nvim_get_current_buf()
-            local dir = oil.get_current_dir(buf)
-            local cwd = vim.fn.getcwd() .. "/"
-            if dir ~= nil and cwd ~= dir then
-              oil.open(path.parent(dir))
-            end
-          end,
-        },
+        ["<S-l>"] = "actions.select",
+        ["<S-h>"] = { "actions.parent", mode = "n" },
       },
     },
     -- Optional dependencies

@@ -8,15 +8,22 @@
 
 [init]
     defaultBranch = main
+
 [commit]
     template = ./commit_template
     verbose = true
+
 [status]
     short = true
+    branch = true
+    showStash = true
+
 [fetch]
     prune = true
+
 [pull]
     ff = true
+
 [push]
     followTags = true
 
@@ -24,8 +31,10 @@
 [merge]
     tool = nvimdiff
     conflictstyle = diff3
+
 [mergetool]
     prompt = false
     keepBackup = false
+
 [mergetool "nvimdiff"]
     layout = "LOCAL,BASE,REMOTE / MERGED"

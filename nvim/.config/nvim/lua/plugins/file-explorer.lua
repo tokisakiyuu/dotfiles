@@ -4,7 +4,7 @@ vim.api.nvim_create_autocmd("User", {
     local fs = require("mini.files")
     local buf_id = args.data.buf_id
 
-    vim.keymap.set("n", "~", function()
+    vim.keymap.set("n", "@", function()
       fs.open(vim.fn.getcwd())
     end, { buffer = buf_id, desc = "Go to cwd" })
   end,
@@ -32,6 +32,7 @@ return {
           go_in_plus = "<Enter>",
           go_out_plus = "",
           synchronize = "<C-s>",
+          reveal_cwd = "",
         },
         windows = {
           -- Maximum number of windows to show side by side

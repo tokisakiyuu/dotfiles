@@ -7,3 +7,13 @@ function app
 
     open "/Applications/$name.app"
 end
+
+function open
+    set -l input $argv[1]
+
+    if string match -rq '^https?://' $input
+        command open $input
+    else
+        command open https://$input
+    end
+end

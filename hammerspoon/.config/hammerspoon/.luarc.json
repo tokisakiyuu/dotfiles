@@ -1,0 +1,10 @@
+{
+  "Lua.runtime": {
+    "path": ["?.lua", "?/init.lua", "lua/?.lua", "lua/?/init.lua"],
+    "pathStrict": false
+  },
+  "Lua.workspace": {
+    "library": ["./Spoons/EmmyLua.spoon/annotations", "./lua"],
+    "checkThirdParty": false
+  }
+}

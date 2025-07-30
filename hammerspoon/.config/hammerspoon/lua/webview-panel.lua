@@ -29,14 +29,11 @@ function M.open(url)
 		end
 	end)
 
-	wv
-		:windowStyle({ "titled", "closable", "resizable", "nonactivating" })
-		-- :behaviorAsLabels({ "canJoinAllSpaces", "fullScreenAuxiliary", "moveToActiveSpace" })
-		:titleVisibility(
-			"visible"
-		)
+	wv:windowStyle({ "titled", "closable", "resizable", "nonactivating" })
+		:titleVisibility("visible")
 		:closeOnEscape(true)
 		:allowTextEntry(true)
+		:shadow(true)
 		:userAgent(chromeUA)
 		:url(url)
 		:show()

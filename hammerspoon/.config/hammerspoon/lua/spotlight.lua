@@ -48,7 +48,7 @@ local actions = {
 	},
 	["ChatGPT"] = {
 		keyword = "gpt",
-		url = "https://chatgpt.com/",
+		url = "https://chatgpt.com/?q=${query}",
 	},
 	["Youdao Translator"] = {
 		keyword = "y",

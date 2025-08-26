@@ -20,6 +20,21 @@ return {
       servers = {
         -- Custom Server Options
         -- https://github.com/neovim/nvim-lspconfig/blob/master/doc/configs.md
+        eslint = {
+          filetypes = {
+            "graphql",
+            "javascript",
+            "javascriptreact",
+            "javascript.jsx",
+            "typescript",
+            "typescriptreact",
+            "typescript.tsx",
+            "vue",
+            "svelte",
+            "astro",
+            "htmlangular",
+          },
+        },
       },
     },
   },

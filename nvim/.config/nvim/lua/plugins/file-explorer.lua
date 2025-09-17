@@ -12,7 +12,7 @@ vim.api.nvim_create_autocmd("User", {
 
 return {
   {
-    "echasnovski/mini.files",
+    "nvim-mini/mini.files",
     version = "*",
     keys = {
       {
@@ -83,7 +83,7 @@ return {
       },
     },
     -- Optional dependencies
-    dependencies = { { "echasnovski/mini.icons", opts = {} } },
+    dependencies = { { "nvim-mini/mini.icons", opts = {} } },
     -- dependencies = { "nvim-tree/nvim-web-devicons" }, -- use if prefer nvim-web-devicons
   },
 

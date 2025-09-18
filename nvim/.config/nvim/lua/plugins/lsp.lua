@@ -66,6 +66,7 @@ return {
         "eslint",
         "graphql",
         "jsonls", -- json files lsp
+        "prismals",
       },
     },
   },

@@ -45,3 +45,6 @@ zoxide init fish | source
 
 # Command Editor command
 set -gx EDITOR /opt/homebrew/bin/nvim
+
+# Secrets
+source env.secret.fish

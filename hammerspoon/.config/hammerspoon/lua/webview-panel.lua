@@ -21,8 +21,8 @@ function M.open(url)
 	end
 
 	wv:windowCallback(function(action)
-		print(action)
 		if action == "closing" then
+			wv:delete(true)
 			if original and original:application():isRunning() then
 				original:focus()
 			end

@@ -87,6 +87,7 @@ return {
           classFunctions = {
             "tw",
             "clsx",
+            "cn",
           },
           colorDecorators = false,
         },

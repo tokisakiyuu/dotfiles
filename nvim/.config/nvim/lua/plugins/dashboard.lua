@@ -1,6 +1,6 @@
 return {
   {
-    "snacks.nvim",
+    "folke/snacks.nvim",
     opts = {
       dashboard = {
         -- https://github.com/folke/snacks.nvim/blob/main/docs/dashboard.md#advanced

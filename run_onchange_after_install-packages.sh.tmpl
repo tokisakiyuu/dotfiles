@@ -6,6 +6,7 @@ echo "No Package Manager has been configured"
 {{ else if eq .chezmoi.os "darwin" -}}
 
 #!/bin/sh
-brew bundle install --file=./.config/brew/Brewfile
+brew bundle install --file={{ joinPath .chezmoi.sourceDir "./dot_config/brew/Brewfile" }}
+
 
 {{ end -}}

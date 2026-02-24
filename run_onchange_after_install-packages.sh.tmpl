@@ -1,0 +1,11 @@
+{{ if eq .chezmoi.os "linux" -}}
+
+#!/bin/sh
+echo "No Package Manager has been configured"
+
+{{ else if eq .chezmoi.os "darwin" -}}
+
+#!/bin/sh
+brew bundle install --file=./.config/brew/Brewfile
+
+{{ end -}}

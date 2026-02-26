@@ -11,7 +11,7 @@ function install_packages() {
 }
 
 function main() {
-  install_install_packages
+  install_packages
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

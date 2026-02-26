@@ -1,6 +1,0 @@
-{{ if eq .chezmoi.os "darwin" -}}
-
-#!/usr/bin/env bash
-bash -x {{ joinPath .chezmoi.sourceDir "../install/macos/packages.sh" | quote }}
-
-{{- end }}

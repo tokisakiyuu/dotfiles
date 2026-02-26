@@ -6,7 +6,7 @@ if [ "${DOTFILES_DEBUG:-}" ]; then
   set -x
 fi
 
-readonly TMUX_PLUGINS_DIR="${HOME%/}/.tmux/plugins"
+readonly TMUX_PLUGINS_DIR="${HOME%/}/.config/tmux/plugins"
 readonly TPM_DIR="${TMUX_PLUGINS_DIR}/tpm"
 
 function clone_tpm() {

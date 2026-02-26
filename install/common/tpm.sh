@@ -19,8 +19,7 @@ function clone_tpm() {
 }
 
 function install_tpm_plugins() {
-  local dir="$1"
-  local cmd="${dir%/}/scripts/install_plugins.sh"
+  local cmd="${TPM_DIR}/scripts/install_plugins.sh"
 
   "${cmd}"
 }
@@ -30,7 +29,7 @@ function install_tpm() {
 
   if [ ! "${DOTFILES_DEBUG:-}" ] || [ ! -d "${TPM_DIR}" ]; then
     clone_tpm "${TPM_DIR}"
-    install_tpm_plugins "${TPM_DIR}"
+    install_tpm_plugins
   fi
 }
 

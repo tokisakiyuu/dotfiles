@@ -270,7 +270,7 @@ tmux_conf_theme_right_separator_sub="|"
 #     - #{username}
 #     - #{username_ssh}
 tmux_conf_theme_status_left="#S "
-tmux_conf_theme_status_right=" #{prefix}#{mouse}#{pairing}#{synchronized}#{?battery_percentage, #{battery_percentage},} %a %b %-d %H:%M "
+tmux_conf_theme_status_right=" #{prefix}#{mouse}#{pairing}#{synchronized}#{?battery_percentage, #{battery_percentage},} %a(%w) %b(%m) %-d %H:%M "
 
 # status left style
 tmux_conf_theme_status_left_fg="#ffffff"
@@ -409,6 +409,7 @@ bind m run "cut -c3- '#{TMUX_CONF}' | sh -s _toggle_mouse" \; display 'mouse #{?
 # move status line to top
 set -g status-position top
 
+bind c new-window -c '#{pane_current_path}' #!important
 
 # -- tpm -----------------------------------------------------------------------
 

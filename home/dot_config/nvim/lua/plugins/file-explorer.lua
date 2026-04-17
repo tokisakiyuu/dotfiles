@@ -1,60 +1,9 @@
-vim.api.nvim_create_autocmd("User", {
-  pattern = "MiniFilesBufferCreate",
-  callback = function(args)
-    local fs = require("mini.files")
-    local buf_id = args.data.buf_id
-
-    vim.keymap.set("n", "@", function()
-      fs.open(vim.fn.getcwd())
-    end, { buffer = buf_id, desc = "Go to cwd" })
-  end,
-})
-
 return {
-  {
-    "nvim-mini/mini.files",
-    version = "*",
-    keys = {
-      {
-        "<leader>e",
-        function()
-          local fs = require("mini.files")
-          fs.open(vim.api.nvim_buf_get_name(0), true)
-        end,
-        desc = "Open mini explorer",
-      },
-    },
-    config = function()
-      require("mini.files").setup({
-        mappings = {
-          go_in = "L",
-          go_out = "H",
-          go_in_plus = "<Enter>",
-          go_out_plus = "",
-          synchronize = "<C-s>",
-          reveal_cwd = "",
-        },
-        windows = {
-          -- Maximum number of windows to show side by side
-          max_number = math.huge,
-          -- Whether to show preview of file/directory under cursor
-          preview = true,
-          -- Width of focused window
-          width_focus = 25,
-          -- Width of non-focused window
-          width_nofocus = 25,
-          -- Width of preview window
-          width_preview = 50,
-        },
-      })
-    end,
-  },
-
   {
     "stevearc/oil.nvim",
     keys = {
       {
-        "<leader>E",
+        "<leader>e",
         "<CMD>Oil<CR>",
         desc = "Open oil explorer",
       },
@@ -78,6 +27,19 @@ return {
         ["gs"] = { "actions.change_sort", mode = "n" },
         ["gx"] = "actions.open_external",
         ["g."] = { "actions.toggle_hidden", mode = "n" },
+        ["gy"] = {
+          desc = "Copy absolute path",
+          callback = function()
+            local oil = require("oil")
+            local entry = oil.get_cursor_entry()
+            if entry then
+              local dir = oil.get_current_dir()
+              local path = dir .. entry.name
+              vim.fn.setreg("+", path)
+              vim.notify("Copied: " .. path)
+            end
+          end,
+        },
         ["<S-l>"] = "actions.select",
         ["<S-h>"] = { "actions.parent", mode = "n" },
       },

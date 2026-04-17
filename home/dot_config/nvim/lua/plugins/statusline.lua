@@ -5,6 +5,20 @@ local sections = {
     {
       "filename",
       path = 1,
+      fmt = function(str)
+        local bufname = vim.api.nvim_buf_get_name(0)
+        if bufname:match("^oil://") then
+          local path = bufname:gsub("^oil://", ""):gsub("/$", "")
+          local rel = vim.fn.fnamemodify(path, ":~:.")
+          if rel == "." then
+            return "@"
+          elseif not rel:match("^[/~]") then
+            return "@/" .. rel
+          end
+          return rel
+        end
+        return str
+      end,
     },
   },
   lualine_x = {

@@ -40,8 +40,35 @@ return {
             end
           end,
         },
-        ["<S-l>"] = "actions.select",
         ["<S-h>"] = { "actions.parent", mode = "n" },
+        ["<S-l>"] = {
+          desc = "Navigate into directory",
+          mode = "n",
+          callback = function()
+            local oil = require("oil")
+            local entry = oil.get_cursor_entry()
+            if entry == nil then
+              return
+            end
+            if entry.type == "directory" then
+              oil.select()
+            end
+          end,
+        },
+        ["<CR>"] = {
+          desc = "Open file",
+          mode = "n",
+          callback = function()
+            local oil = require("oil")
+            local entry = oil.get_cursor_entry()
+            if entry == nil then
+              return
+            end
+            if entry.type == "file" then
+              oil.select()
+            end
+          end,
+        },
       },
     },
     -- Optional dependencies

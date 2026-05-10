@@ -1,3 +1,5 @@
+local toggle_key = [[<C-\>]]
+
 return {
   {
     "coder/claudecode.nvim",
@@ -21,12 +23,37 @@ return {
       -- Diff management
       { "<leader>aa", "<cmd>ClaudeCodeDiffAccept<cr>", desc = "Accept diff" },
       { "<leader>ad", "<cmd>ClaudeCodeDiffDeny<cr>", desc = "Deny diff" },
+      { toggle_key, "<cmd>ClaudeCode<cr>", desc = "Toggle Claude", mode = { "n", "x" } },
     },
     opts = {
       auto_start = true,
       focus_after_send = true,
       terminal = {
-        split_width_percentage = 0.50,
+        -- split_width_percentage = 0.50,
+        ---@module "snacks"
+        ---@type snacks.win.Config|{}
+        snacks_win_opts = {
+          position = "float",
+          width = 0.9,
+          height = 0.9,
+          border = "rounded",
+          keys = {
+            claude_hide = {
+              toggle_key,
+              function(self)
+                self:hide()
+              end,
+              mode = "t",
+              desc = "Hide",
+            },
+          },
+        },
+      },
+      diff_opts = {
+        layout = "vertical", -- "vertical" or "horizontal"
+        open_in_new_tab = true,
+        keep_terminal_focus = false, -- If true, moves focus back to terminal after diff opens
+        hide_terminal_in_new_tab = true,
       },
     },
   },

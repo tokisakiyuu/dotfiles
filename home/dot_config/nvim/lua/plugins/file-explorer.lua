@@ -21,7 +21,7 @@ return {
       keymaps = {
         ["g?"] = { "actions.show_help", mode = "n" },
         ["<C-p>"] = "actions.preview",
-        ["<C-l"] = "actions.refresh",
+        ["<C-l>"] = "actions.refresh",
         ["q"] = { "actions.close", mode = "n" },
         ["@"] = { "actions.open_cwd", mode = "n" },
         ["gs"] = { "actions.change_sort", mode = "n" },

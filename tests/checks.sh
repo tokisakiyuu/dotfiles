@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Helper functions for tests/audit.yaml `cmd:` snippets.
 # Sourced by tests/audit.sh; every check_* function is auto-exported so the
 # bash subshells that run `cmd:` can call them.
@@ -16,7 +17,7 @@ check_brewfile() {
   while IFS= read -r line; do
     case "$line" in
       "$kind \""*)
-        name="${line#$kind \"}"
+        name="${line#"$kind" \"}"
         name="${name%%\"*}"
         name="${name##*/}"
         grep -qFx "$name" <<<"$installed" || { echo "missing $kind: $name" >&2; return 1; }

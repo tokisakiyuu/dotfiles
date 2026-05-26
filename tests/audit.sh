@@ -25,6 +25,7 @@ command -v yq >/dev/null 2>&1 || { echo "audit: yq (for YAML) is required: brew 
 # shellcheck source=tests/checks.sh
 source "$CHECKS_LIB"
 while IFS= read -r fn; do
+  # shellcheck disable=SC2163  # the value of $fn IS the function name; export -f handles that correctly
   export -f "$fn"
 done < <(declare -F | awk '{print $3}' | grep -E '^check_')
 
@@ -32,6 +33,7 @@ done < <(declare -F | awk '{print $3}' | grep -E '^check_')
 # cmd is base64-encoded so it can safely carry quotes, tabs, and newlines
 # without yq's @tsv quoting (yq follows CSV rules and doubles every `"`).
 parse_checks() {
+  # shellcheck disable=SC2016  # the $section here is a yq variable, not a bash one
   yq -r '
     .sections
     | to_entries[]

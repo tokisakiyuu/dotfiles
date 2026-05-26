@@ -98,6 +98,7 @@ bash tests/audit.sh --list                # show available sections
 | --- | --- |
 | `dots` | Daily loop: pull → pick → re-add → commit → push |
 | `dotfiles-check` | Local lint: shellcheck + `fish -n` + `chezmoi diff` |
+| `brewfile-sync` | `brew bundle dump` into `~/.config/brew/Brewfile`; run after `brew install`/`uninstall` |
 | `ll` | `eza` alias with icons and sorting |
 | `keychain-env <KEY> [VALUE]` | Read or write an env var into the macOS Keychain |
 | `delete-upstream-gone-branchs` | Drop local git branches whose upstream is gone |

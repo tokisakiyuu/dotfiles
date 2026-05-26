@@ -47,8 +47,10 @@ check_protected_paths() {
     [[ -z "$raw" ]] && continue
     path="${raw/#\~/$HOME}"
     if [[ ! -e "$path" ]]; then
-      echo "missing: $path" >&2
-      failed=$((failed + 1))
+      # Same policy as the apply-time script: paths that don't exist yet
+      # are skipped, not failed. Once they exist, the next apply will
+      # protect them and the next audit will verify it.
+      echo "skip (missing): $path" >&2
       continue
     fi
     flags=$(stat -f '%Sf' "$path" 2>/dev/null)

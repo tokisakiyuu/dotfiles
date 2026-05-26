@@ -1,6 +1,9 @@
 function dots --description 'Sync ~ -> source, pick files, commit, push'
-    # Pull remote + apply first so re-add can't clobber upstream commits.
-    chezmoi update; or return 1
+    # Pull the source repo (no apply) so re-add can't overwrite remote commits.
+    # We deliberately don't run `chezmoi apply` here: ~ is what we're collecting
+    # FROM, not what we're deploying TO. Run `chezmoi apply` separately if you
+    # need to pick up dotfile changes pushed from another machine.
+    chezmoi git pull -- --rebase; or return 1
 
     set -l rows (chezmoi status)
     if test (count $rows) -eq 0

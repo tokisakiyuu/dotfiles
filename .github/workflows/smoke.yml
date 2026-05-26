@@ -35,7 +35,8 @@ jobs:
         run: sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
 
       - name: chezmoi init (render config, fetch externals)
-        run: "$HOME/.local/bin/chezmoi" init
+        run: |
+          "$HOME/.local/bin/chezmoi" init
 
       - name: chezmoi apply (dotfiles only, skip run_once_* installers)
         # 跳过 .chezmoiscripts/ 里的 run_once_* 脚本: 我们想验证 dotfiles + external + 加密解密能跑通,
@@ -44,7 +45,8 @@ jobs:
           "$HOME/.local/bin/chezmoi" apply --exclude=scripts
 
       - name: chezmoi verify (target state matches source)
-        run: "$HOME/.local/bin/chezmoi" verify --exclude=scripts
+        run: |
+          "$HOME/.local/bin/chezmoi" verify --exclude=scripts
 
       - name: Brewfile dry validate (no-cask, no-upgrade)
         # macOS runner 预装大量 brew 包, 跑一遍 bundle install 主要验证 Brewfile 语法和 tap 可达.

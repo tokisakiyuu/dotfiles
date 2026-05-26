@@ -58,7 +58,7 @@ check_protected_paths() {
       echo "$path is not uchg-locked (flags='$flags')" >&2
       failed=$((failed + 1))
     fi
-  done < <(chezmoi data | yq -p=json -r '.protected_paths[]?')
+  done < <(chezmoi data | yq -p=json -r '.protected_paths[]?.path')
   (( failed == 0 ))
 }
 

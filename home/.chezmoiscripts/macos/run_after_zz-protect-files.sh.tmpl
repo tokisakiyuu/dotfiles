@@ -2,12 +2,15 @@
 #!/usr/bin/env bash
 #
 # Apply chflags uchg to paths declared in .chezmoidata/protected_paths.toml.
-# Files get a single `chflags uchg`; directories get `chflags -R uchg`.
+# Each entry is a table with `path` and optional `recursive`.
+#   recursive = false (default): chflags uchg <path>
+#   recursive = true:             chflags -R uchg <path>
+#
 # Paths may use ~ for $HOME.
 #
 # This script only ADDS the flag. To unprotect a path:
-#   1. remove it from .chezmoidata/protected_paths.toml
-#   2. run `chflags nouchg <path>` (or `-R nouchg` for directories) by hand
+#   1. remove the entry from .chezmoidata/protected_paths.toml
+#   2. run `chflags nouchg <path>` (add -R for recursive entries) by hand
 #
 # Runs on every `chezmoi apply` (run_ without once_/onchange_) so that
 # paths which didn't exist yet at the time of an earlier apply get picked
@@ -20,31 +23,20 @@ if [ "${DOTFILES_DEBUG:-}" ]; then
   set -x
 fi
 
-paths=(
-{{- range .protected_paths }}
-  "{{ . }}"
+{{ range .protected_paths -}}
+raw="{{ .path }}"
+path="${raw/#\~/$HOME}"
+if [ ! -e "$path" ]; then
+  echo "protect-files: skip (missing): $path" >&2
+else
+{{- if index . "recursive" }}
+  chflags -R uchg "$path"
+  echo "protect-files: locked (recursive): $path"
+{{- else }}
+  chflags uchg "$path"
+  echo "protect-files: locked: $path"
 {{- end }}
-)
-
-if [ "${#paths[@]}" -eq 0 ]; then
-  echo "protect-files: no protected_paths configured; nothing to do"
-  exit 0
 fi
 
-for raw in "${paths[@]}"; do
-  path="${raw/#\~/$HOME}"
-
-  if [ ! -e "$path" ]; then
-    echo "protect-files: skip (missing): $path" >&2
-    continue
-  fi
-
-  if [ -d "$path" ]; then
-    chflags -R uchg "$path"
-    echo "protect-files: locked (recursive): $path"
-  else
-    chflags uchg "$path"
-    echo "protect-files: locked: $path"
-  fi
-done
+{{ end -}}
 {{- end }}

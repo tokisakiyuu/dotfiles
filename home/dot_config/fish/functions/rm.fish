@@ -1,15 +1,17 @@
 function rm --wraps=rm --description 'rm wrapper that refuses to delete configured paths'
     # ── Protected paths ──────────────────────────────────────────────────────
-    # Edit these two lists to taste. Paths may use ~ for $HOME.
+    # Add / remove entries by editing the `set -a` lines below.
+    # Each line is independent — no trailing backslashes, no comma fiddling.
+    # Paths may use ~ for $HOME.
 
     # Exact paths (file or directory) that must never be rm'd.
-    set -l protected_paths \
-        ~/.config/chezmoi/age-key.txt
+    set -l protected_paths
+    set -a protected_paths ~/.config/chezmoi/age-key.txt
 
     # Directory roots whose contents are also off-limits: rm of the directory
     # itself, or anything underneath it, is refused.
-    set -l protected_paths_recursive \
-        ~/.ssh
+    set -l protected_paths_recursive
+    set -a protected_paths_recursive ~/.ssh
 
     # ── Pull file targets out of argv (skip flags) ───────────────────────────
     set -l targets

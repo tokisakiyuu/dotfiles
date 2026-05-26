@@ -1,0 +1,67 @@
+name: lint
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+          sudo apt-get update -qq
+          sudo apt-get install -y fish shellcheck
+
+      - name: shellcheck
+        run: shellcheck setup.sh install/macos/*.sh
+
+      - name: fish syntax
+        run: |
+          set -e
+          while IFS= read -r -d '' f; do
+            fish -n "$f"
+          done < <(find home/dot_config/fish -name '*.fish' -print0)
+
+      - name: parse TOML / JSON
+        run: |
+          python3 - <<'PY'
+          import json, tomllib, pathlib, sys
+          errors = []
+          for p in pathlib.Path('.').rglob('*.toml'):
+              try:
+                  tomllib.loads(p.read_text())
+              except Exception as e:
+                  errors.append(f"{p}: {e}")
+          for p in [
+              'home/dot_config/nvim/dot_neoconf.json',
+              'home/dot_config/nvim/lazyvim.json',
+              'home/dot_config/nvim/lazy-lock.json',
+          ]:
+              try:
+                  json.loads(open(p).read())
+              except Exception as e:
+                  errors.append(f"{p}: {e}")
+          if errors:
+              print("\n".join(errors))
+              sys.exit(1)
+          PY
+
+      - name: stylua check
+        uses: JohnnyMorganz/stylua-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
+          args: --check home/dot_config/nvim/lua/
+
+      - name: chezmoi templates compile
+        run: |
+          # 渲染所有 .tmpl 文件, 任何模板错都会非零退出.
+          set -e
+          while IFS= read -r -d '' f; do
+            "$HOME/.local/bin/chezmoi" execute-template < "$f" >/dev/null
+          done < <(find home -name '*.tmpl' -print0)

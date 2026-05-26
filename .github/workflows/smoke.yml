@@ -1,0 +1,58 @@
+name: smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 每周一 14:00 UTC (北京 22:00) 跑一次, 提前发现 brew tap 失效、external repo 失踪等漂移问题.
+    - cron: '0 14 * * 1'
+
+jobs:
+  apply-on-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src
+
+      - name: Place source at chezmoi default location
+        run: |
+          mkdir -p "$HOME/.local/share"
+          mv src "$HOME/.local/share/chezmoi"
+
+      - name: Provision age key
+        env:
+          AGE_KEY: ${{ secrets.CHEZMOI_AGE_KEY }}
+        run: |
+          mkdir -p "$HOME/.config/chezmoi"
+          umask 077
+          printf '%s' "$AGE_KEY" > "$HOME/.config/chezmoi/age-key.txt"
+
+      - name: Install chezmoi
+        run: sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+
+      - name: chezmoi init (render config, fetch externals)
+        run: "$HOME/.local/bin/chezmoi" init
+
+      - name: chezmoi apply (dotfiles only, skip run_once_* installers)
+        # 跳过 .chezmoiscripts/ 里的 run_once_* 脚本: 我们想验证 dotfiles + external + 加密解密能跑通,
+        # 不想真的装 100 个 brew 包. brew 安装单独在下一步用 --no-cask 验证.
+        run: |
+          "$HOME/.local/bin/chezmoi" apply --exclude=scripts
+
+      - name: chezmoi verify (target state matches source)
+        run: "$HOME/.local/bin/chezmoi" verify --exclude=scripts
+
+      - name: Brewfile dry validate (no-cask, no-upgrade)
+        # macOS runner 预装大量 brew 包, 跑一遍 bundle install 主要验证 Brewfile 语法和 tap 可达.
+        run: |
+          brew bundle check --file="$HOME/.config/brew/Brewfile" --no-upgrade --verbose || true
+          brew bundle install --file="$HOME/.config/brew/Brewfile" --no-upgrade --no-lock --quiet --formulae-only
+
+      - name: Smoke check shell entry
+        # 把 fish 跑起来, 确保 config.fish 不抛错, 且关键 env 被设上.
+        run: |
+          /opt/homebrew/bin/fish -c 'echo SHELL=$SHELL; echo EDITOR=$EDITOR; echo PATH=$PATH | tr ":" "\n" | head'

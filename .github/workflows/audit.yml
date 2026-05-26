@@ -3,7 +3,8 @@ name: audit
 on:
   workflow_dispatch:
   schedule:
-    # 每周一 14:00 UTC (北京 22:00) 跑一次, 提前发现 brew tap 失效、external repo 失踪等漂移问题.
+    # Weekly Monday 14:00 UTC. Catches upstream drift (brew taps disappearing,
+    # external repos moving) before it bites a real machine.
     - cron: '0 14 * * 1'
 
 jobs:
@@ -39,8 +40,9 @@ jobs:
           "$HOME/.local/bin/chezmoi" init
 
       - name: chezmoi apply (dotfiles only, skip run_once_*)
-        # CI 自己控制 brew/packages/defaults 三个 install 步骤, 因为我们想让 brew bundle 走 --no-cask
-        # (cask 在 GitHub macOS runner 上动辄几 GB 下载, 太慢). 把脚本从 chezmoi 链路里摘出来手动跑.
+        # CI drives brew / packages / defaults as explicit steps so we can pass
+        # `--no-cask` style filtering to brew bundle. Casks (chrome, kitty, ...)
+        # are gigabytes on GitHub macOS runners and not worth installing here.
         run: |
           "$HOME/.local/bin/chezmoi" apply --exclude=scripts
 
@@ -48,8 +50,9 @@ jobs:
         run: bash "$HOME/.local/share/chezmoi/install/macos/brew.sh"
 
       - name: brew bundle (formulae only, no cask)
-        # 新版 brew bundle 去掉了 --no-cask, 只剩按名字 skip 的环境变量, 无法一刀切.
-        # 直接过滤掉 cask 行做一份临时 Brewfile.
+        # Recent brew bundle dropped --no-cask, leaving only per-name skip env
+        # vars that can't blanket-exclude. Easiest workaround: grep the cask
+        # lines out into a scratch Brewfile.
         run: |
           grep -v '^cask' "$HOME/.config/brew/Brewfile" > /tmp/Brewfile.nocask
           brew bundle install --no-upgrade --file=/tmp/Brewfile.nocask

@@ -60,7 +60,7 @@ jobs:
 
       - name: chezmoi templates compile
         run: |
-          # 渲染所有 .tmpl 文件, 任何模板错都会非零退出.
+          # Render every .tmpl file; any template error exits non-zero.
           set -e
           while IFS= read -r -d '' f; do
             "$HOME/.local/bin/chezmoi" execute-template < "$f" >/dev/null

@@ -1,17 +1,14 @@
 function rm --wraps=rm --description 'rm wrapper that refuses to delete configured paths'
     # ── Protected paths ──────────────────────────────────────────────────────
-    # Edit these three lists to taste. Paths may use ~ for $HOME.
+    # Edit these two lists to taste. Paths may use ~ for $HOME.
 
-    # Exact files that must never be rm'd.
-    set -l protected_files \
+    # Exact paths (file or directory) that must never be rm'd.
+    set -l protected_paths \
         ~/.config/chezmoi/age-key.txt
 
-    # Directories whose entry itself can't be rm'd. Children stay deletable.
-    set -l protected_dirs
-
-    # Directories AND every descendant: rm of the directory or anything
-    # underneath it is refused.
-    set -l protected_dirs_recursive \
+    # Directory roots whose contents are also off-limits: rm of the directory
+    # itself, or anything underneath it, is refused.
+    set -l protected_paths_recursive \
         ~/.ssh
 
     # ── Pull file targets out of argv (skip flags) ───────────────────────────
@@ -36,28 +33,21 @@ function rm --wraps=rm --description 'rm wrapper that refuses to delete configur
     for target in $targets
         set -l rt (path resolve -- $target)
 
-        for f in $protected_files
-            if test "$rt" = (path resolve -- $f)
-                echo "rm refused: $target is in protected_files" >&2
+        for p in $protected_paths
+            if test "$rt" = (path resolve -- $p)
+                echo "rm refused: $target is in protected_paths" >&2
                 return 1
             end
         end
 
-        for d in $protected_dirs
-            if test "$rt" = (path resolve -- $d)
-                echo "rm refused: $target is in protected_dirs (the dir itself)" >&2
+        for p in $protected_paths_recursive
+            set -l rp (path resolve -- $p)
+            if test "$rt" = "$rp"
+                echo "rm refused: $target is a protected_paths_recursive root" >&2
                 return 1
             end
-        end
-
-        for d in $protected_dirs_recursive
-            set -l rd (path resolve -- $d)
-            if test "$rt" = "$rd"
-                echo "rm refused: $target is a protected_dirs_recursive root" >&2
-                return 1
-            end
-            if string match -q -- "$rd/*" $rt
-                echo "rm refused: $target is inside protected_dirs_recursive $d" >&2
+            if string match -q -- "$rp/*" $rt
+                echo "rm refused: $target is inside protected_paths_recursive $p" >&2
                 return 1
             end
         end

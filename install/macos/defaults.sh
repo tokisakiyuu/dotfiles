@@ -8,9 +8,10 @@ fi
 
 # ~/.macos — https://mths.be/macos
 
-# Close any open System Preferences panes, to prevent them from overriding
-# settings we’re about to change
-osascript -e 'tell application "System Preferences" to quit'
+# Close any open Settings panes to prevent them from overriding our writes.
+# The app was renamed in macOS 13; try both, ignore failures.
+osascript -e 'tell application "System Preferences" to quit' 2>/dev/null || true
+osascript -e 'tell application "System Settings" to quit' 2>/dev/null || true
 
 ###############################################################################
 # Finder.app                                                                  #

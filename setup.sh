@@ -8,12 +8,24 @@ fi
 
 readonly DOTFILES_REPO_URL="https://github.com/tokisakiyuu/dotfiles"
 readonly BIN_DIR="${HOME}/.local/bin"
-readonly CHEZMOI_CMD="${BIN_DIR}/chezmoi"
+readonly BOOTSTRAP_CHEZMOI="${BIN_DIR}/chezmoi"
+readonly CHEZMOI_SOURCE="${HOME}/.local/share/chezmoi"
 
-sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "${BIN_DIR}"
+# Idempotency: once the source tree exists, this script is a no-op. Daily
+# refreshes go through `chezmoi update`; re-running setup.sh must never
+# clobber a working tree that may hold uncommitted changes.
+if [ -d "${CHEZMOI_SOURCE}/.git" ]; then
+  echo "chezmoi source already exists at ${CHEZMOI_SOURCE}."
+  echo "Use 'chezmoi update' to pull and apply remote changes."
+  exit 0
+fi
 
-"${CHEZMOI_CMD}" init "${DOTFILES_REPO_URL}" \
-  --force \
-  --use-builtin-git true
-
-rm -fv "${CHEZMOI_CMD}"
+# Reuse an existing chezmoi if one is on PATH (e.g. brew-installed already),
+# otherwise drop a throwaway binary just for the bootstrap.
+if command -v chezmoi >/dev/null 2>&1; then
+  chezmoi init --use-builtin-git=true "${DOTFILES_REPO_URL}"
+else
+  sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "${BIN_DIR}"
+  "${BOOTSTRAP_CHEZMOI}" init --use-builtin-git=true "${DOTFILES_REPO_URL}"
+  rm -fv "${BOOTSTRAP_CHEZMOI}"
+fi

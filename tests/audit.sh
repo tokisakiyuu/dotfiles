@@ -22,7 +22,8 @@ CHECKS_LIB="${SELF_DIR}/checks.sh"
 command -v yq >/dev/null 2>&1 || { echo "audit: yq (for YAML) is required: brew install yq" >&2; exit 2; }
 
 # Load helpers and export every check_* function so cmd: subshells see them.
-# shellcheck source=tests/checks.sh
+# shellcheck source=./checks.sh
+# shellcheck disable=SC1091  # source path is dynamic; the directive above tells shellcheck where to look when run with -x
 source "$CHECKS_LIB"
 while IFS= read -r fn; do
   # shellcheck disable=SC2163  # the value of $fn IS the function name; export -f handles that correctly
@@ -50,25 +51,35 @@ parse_sections() {
 usage() {
   cat <<EOF
 Usage: bash tests/audit.sh [section...]
-  (no args)  run every section in audit.yaml
-  --list     print available sections
-  --help     this help
+       bash tests/audit.sh --except section...
+
+  (no args)         run every section in audit.yaml
+  section...        run only the listed sections
+  --except a b c    run every section EXCEPT the listed ones
+  --list            print available sections
+  --help            this help
 
 Config:  ${CONFIG}  (override with AUDIT_CONFIG=...)
 Helpers: ${CHECKS_LIB}  (define new check_* functions there)
 EOF
 }
 
+EXCEPT=()
 case "${1:-}" in
   -h|--help) usage; exit 0 ;;
   --list)    parse_sections; exit 0 ;;
+  --except)  shift; EXCEPT=("$@"); set -- ;;
 esac
 
 WANTED=()
 if [[ $# -gt 0 ]]; then
   WANTED=("$@")
 else
-  while IFS= read -r s; do WANTED+=("$s"); done < <(parse_sections)
+  while IFS= read -r s; do
+    # skip sections listed after --except
+    [[ " ${EXCEPT[*]} " == *" $s "* ]] && continue
+    WANTED+=("$s")
+  done < <(parse_sections)
 fi
 
 in_array() { local n=$1; shift; for x in "$@"; do [[ "$x" == "$n" ]] && return 0; done; return 1; }

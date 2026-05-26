@@ -38,11 +38,20 @@ jobs:
         run: |
           "$HOME/.local/bin/chezmoi" init
 
-      - name: chezmoi apply (full, run_once_* included)
-        # 不排除 scripts: brew.sh / packages.sh / defaults.sh 都跑;
-        # tests/audit.sh 在下一步会按 audit.yaml 校验它们的产出.
+      - name: chezmoi apply (dotfiles only, skip run_once_*)
+        # CI 自己控制 brew/packages/defaults 三个 install 步骤, 因为我们想让 brew bundle 走 --no-cask
+        # (cask 在 GitHub macOS runner 上动辄几 GB 下载, 太慢). 把脚本从 chezmoi 链路里摘出来手动跑.
         run: |
-          "$HOME/.local/bin/chezmoi" apply
+          "$HOME/.local/bin/chezmoi" apply --exclude=scripts
 
-      - name: Audit post-apply state
-        run: bash "$HOME/.local/share/chezmoi/tests/audit.sh"
+      - name: Run install/macos/brew.sh
+        run: bash "$HOME/.local/share/chezmoi/install/macos/brew.sh"
+
+      - name: brew bundle (formulae only, no cask)
+        run: brew bundle install --no-upgrade --no-cask --file="$HOME/.config/brew/Brewfile"
+
+      - name: Run install/macos/defaults.sh
+        run: bash "$HOME/.local/share/chezmoi/install/macos/defaults.sh"
+
+      - name: Audit post-apply state (skip casks section)
+        run: bash "$HOME/.local/share/chezmoi/tests/audit.sh" --except casks

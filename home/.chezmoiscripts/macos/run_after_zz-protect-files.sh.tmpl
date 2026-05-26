@@ -9,8 +9,10 @@
 #   1. remove it from .chezmoidata/protected_paths.toml
 #   2. run `chflags nouchg <path>` (or `-R nouchg` for directories) by hand
 #
-# Re-runs whenever the rendered script content changes (run_onchange_),
-# which includes any edit to protected_paths.
+# Runs on every `chezmoi apply` (run_ without once_/onchange_) so that
+# paths which didn't exist yet at the time of an earlier apply get picked
+# up the next time you apply after creating them. chflags uchg is a no-op
+# on files that are already uchg, so the cost is negligible.
 
 set -Eeuo pipefail
 

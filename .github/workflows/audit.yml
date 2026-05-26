@@ -48,7 +48,11 @@ jobs:
         run: bash "$HOME/.local/share/chezmoi/install/macos/brew.sh"
 
       - name: brew bundle (formulae only, no cask)
-        run: brew bundle install --no-upgrade --no-cask --file="$HOME/.config/brew/Brewfile"
+        # 新版 brew bundle 去掉了 --no-cask, 只剩按名字 skip 的环境变量, 无法一刀切.
+        # 直接过滤掉 cask 行做一份临时 Brewfile.
+        run: |
+          grep -v '^cask' "$HOME/.config/brew/Brewfile" > /tmp/Brewfile.nocask
+          brew bundle install --no-upgrade --file=/tmp/Brewfile.nocask
 
       - name: Run install/macos/defaults.sh
         run: bash "$HOME/.local/share/chezmoi/install/macos/defaults.sh"

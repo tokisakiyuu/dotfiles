@@ -103,7 +103,7 @@ bash tests/audit.sh --list                # show available sections
 | `keychain-env <KEY> [VALUE]` | Read or write an env var into the macOS Keychain |
 | `delete-upstream-gone-branchs` | Drop local git branches whose upstream is gone |
 | `scribo-db-shell <env>` | Scribo `mongosh` launcher |
-| `rm` | Intentionally shadowed; reminds you to use `mv ./x ~/.Trash` |
+| `rm` | Wrapped to refuse deletion of paths in three lists at the top of `rm.fish` (exact files, dir entries, recursive roots); other rm calls pass through to `command rm` |
 
 ### chezmoi cheatsheet
 
@@ -186,6 +186,8 @@ chezmoi apply --refresh-externals
 9. **CI skips cask installs.** `audit.yml` greps `cask` lines out of the Brewfile before running `brew bundle install` (chrome / kitty / fonts are big downloads that drag macOS-runner time), and the audit step uses `--except casks` to match. A local `chezmoi apply` still installs everything.
 
 10. **chezmoi keeps state by script hash.** A `run_once_*` script only runs the first time, but if you change its contents the hash changes and it runs again. The scripts therefore have to be idempotent — and they are: `install_homebrew` short-circuits when brew is present, `brew bundle install --no-upgrade` is a no-op when nothing's missing, `defaults write` is idempotent by definition.
+
+11. **`rm` is a fish-only shield.** The wrapper at `home/dot_config/fish/functions/rm.fish` refuses to delete paths listed in three lists at the top of the file: `protected_files`, `protected_dirs`, and `protected_dirs_recursive`. Edit those lists in source, then `dots` to commit. Anything else passes through to the real `rm`. This only catches interactive fish shells — `command rm`, bash/zsh, scripts, cron jobs, and other non-fish callers bypass it.
 
 ---
 

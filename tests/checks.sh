@@ -37,6 +37,29 @@ check_plaintext() {
   fi
 }
 
+# check_protected_paths
+#   pass if every entry in chezmoi's `protected_paths` data exists AND has
+#   the macOS uchg flag set. Only checks the top-level path; if a directory
+#   was chflags -R uchg'd, the directory itself carries the flag.
+check_protected_paths() {
+  local raw path flags failed=0
+  while IFS= read -r raw; do
+    [[ -z "$raw" ]] && continue
+    path="${raw/#\~/$HOME}"
+    if [[ ! -e "$path" ]]; then
+      echo "missing: $path" >&2
+      failed=$((failed + 1))
+      continue
+    fi
+    flags=$(stat -f '%Sf' "$path" 2>/dev/null)
+    if [[ "$flags" != *uchg* ]]; then
+      echo "$path is not uchg-locked (flags='$flags')" >&2
+      failed=$((failed + 1))
+    fi
+  done < <(chezmoi data | yq -p=json -r '.protected_paths[]?')
+  (( failed == 0 ))
+}
+
 # check_github_auth
 #   pass if git's credential helper can produce a github.com credential AND
 #   that credential actually authenticates against the GitHub API.

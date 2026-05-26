@@ -52,6 +52,10 @@ sections:
     - name: $CLAUDE_CODE_OAUTH_TOKEN is set in fish
       cmd: fish -c 'test -n "$CLAUDE_CODE_OAUTH_TOKEN"'
 
+  protected:
+    - name: every path in protected_paths has the uchg flag
+      cmd: check_protected_paths
+
   shell:
     - name: fish $SHELL points at fish
       cmd: fish -c 'string match -q "*fish" -- "$SHELL"'

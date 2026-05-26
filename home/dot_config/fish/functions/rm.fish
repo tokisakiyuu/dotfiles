@@ -7,6 +7,7 @@ function rm --wraps=rm --description 'rm wrapper that refuses to delete configur
     # Exact paths (file or directory) that must never be rm'd.
     set -l protected_paths
     set -a protected_paths ~
+    set -a protected_paths ~/space
     set -a protected_paths ~/.config/chezmoi/age-key.txt
 
     # Directory roots whose contents are also off-limits: rm of the directory
@@ -22,7 +23,7 @@ function rm --wraps=rm --description 'rm wrapper that refuses to delete configur
             set -a targets $arg
             continue
         end
-        if test "$arg" = '--'
+        if test "$arg" = --
             set past_dashdash 1
             continue
         end

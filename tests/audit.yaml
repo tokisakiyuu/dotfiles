@@ -19,6 +19,8 @@ sections:
       cmd: check_brewfile formula
     - name: all Brewfile casks installed
       cmd: check_brewfile cask
+    - name: yq is available (audit.sh's own dependency)
+      cmd: command -v yq >/dev/null
 
   defaults:
     - name: Finder ShowPathbar = true

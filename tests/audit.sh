@@ -19,7 +19,7 @@ CONFIG="${AUDIT_CONFIG:-${SELF_DIR}/audit.yaml}"
 CHECKS_LIB="${SELF_DIR}/checks.sh"
 
 [[ -f "$CONFIG" ]] || { echo "audit: config not found: $CONFIG" >&2; exit 2; }
-command -v ruby >/dev/null 2>&1 || { echo "audit: ruby (for YAML) is required" >&2; exit 2; }
+command -v yq >/dev/null 2>&1 || { echo "audit: yq (for YAML) is required: brew install yq" >&2; exit 2; }
 
 # Load helpers and export every check_* function so cmd: subshells see them.
 # shellcheck source=tests/checks.sh
@@ -28,22 +28,21 @@ while IFS= read -r fn; do
   export -f "$fn"
 done < <(declare -F | awk '{print $3}' | grep -E '^check_')
 
-# parse_checks emits one TSV row per check:
-#   section <TAB> name <TAB> cmd   (literal newlines in cmd encoded as \n)
+# parse_checks emits one record per check: section <TAB> name <TAB> base64(cmd).
+# cmd is base64-encoded so it can safely carry quotes, tabs, and newlines
+# without yq's @tsv quoting (yq follows CSV rules and doubles every `"`).
 parse_checks() {
-  ruby -ryaml -e '
-    cfg = YAML.load_file(ARGV[0])
-    cfg.fetch("sections").each do |section, checks|
-      checks.each do |c|
-        cmd = c.fetch("cmd").gsub("\n", "\\n")
-        puts [section, c.fetch("name"), cmd].join("\t")
-      end
-    end
+  yq -r '
+    .sections
+    | to_entries[]
+    | .key as $section
+    | .value[]
+    | ($section + "\t" + .name + "\t" + (.cmd | @base64))
   ' "$CONFIG"
 }
 
 parse_sections() {
-  ruby -ryaml -e 'YAML.load_file(ARGV[0]).fetch("sections").each_key { |s| puts s }' "$CONFIG"
+  yq -r '.sections | keys | .[]' "$CONFIG"
 }
 
 usage() {
@@ -75,13 +74,13 @@ in_array() { local n=$1; shift; for x in "$@"; do [[ "$x" == "$n" ]] && return 0
 fail=0
 current_section=""
 
-while IFS=$'\t' read -r section name cmd; do
+while IFS=$'\t' read -r section name cmd_b64; do
   in_array "$section" "${WANTED[@]}" || continue
   if [[ "$section" != "$current_section" ]]; then
     printf '\n── %s ──\n' "$section"
     current_section=$section
   fi
-  cmd=${cmd//\\n/$'\n'}
+  cmd=$(printf '%s' "$cmd_b64" | base64 -d)
   if output=$(bash -c "$cmd" 2>&1); then
     printf '  ok: %s\n' "$name"
   else

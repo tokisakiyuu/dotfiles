@@ -1,0 +1,19 @@
+# Paths that the protect-files script (.chezmoiscripts/macos/run_onchange_after_zz-protect-files.sh.tmpl)
+# will lock with `chflags uchg`. Files are flagged singly; directories are
+# flagged recursively. Paths may use ~ for $HOME.
+#
+# WARNING: don't list files that chezmoi manages — the next `chezmoi apply`
+# will fail when it tries to rewrite them. Use this for files chezmoi
+# DOESN'T touch (age key, ssh keys, etc.).
+#
+# To unprotect a path: remove it from this list, then manually run
+# `chflags nouchg <path>` (add -R for directories). The script only adds
+# the flag, it never removes it.
+#
+# Example:
+#   protected_paths = [
+#     "~/.config/chezmoi/age-key.txt",
+#     "~/.ssh",
+#   ]
+
+protected_paths = []

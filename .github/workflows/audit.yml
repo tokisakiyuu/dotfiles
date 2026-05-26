@@ -1,4 +1,4 @@
-name: smoke
+name: audit
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
     - cron: '0 14 * * 1'
 
 jobs:
-  apply-on-macos:
+  apply-and-audit:
     strategy:
       fail-fast: false
       matrix:
@@ -39,10 +39,10 @@ jobs:
           "$HOME/.local/bin/chezmoi" init
 
       - name: chezmoi apply (full, run_once_* included)
-        # 不排除 scripts: 我们就是要让 brew.sh / packages.sh / defaults.sh 真的跑,
-        # tests/smoke.sh 在下一步会校验它们的产出.
+        # 不排除 scripts: brew.sh / packages.sh / defaults.sh 都跑;
+        # tests/audit.sh 在下一步会按 audit.yaml 校验它们的产出.
         run: |
           "$HOME/.local/bin/chezmoi" apply
 
-      - name: Verify installer scripts landed
-        run: bash "$HOME/.local/share/chezmoi/tests/smoke.sh"
+      - name: Audit post-apply state
+        run: bash "$HOME/.local/share/chezmoi/tests/audit.sh"

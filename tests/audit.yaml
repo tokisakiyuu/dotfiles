@@ -1,0 +1,57 @@
+# State audit declarations. Runtime: tests/audit.sh
+#
+# Each top-level key under `sections:` is selectable on the CLI:
+#   bash tests/audit.sh brew defaults
+#
+# A check passes if its `cmd:` exits 0. Stdout/stderr of failed checks is
+# shown for triage. Helpers (check_brewfile, check_plaintext, ...) live in
+# tests/checks.sh and are auto-exported into each cmd's subshell.
+
+sections:
+  brew:
+    - name: brew on PATH
+      cmd: command -v brew >/dev/null
+    - name: brew analytics disabled
+      cmd: '[[ "$(brew analytics state)" == *disabled* ]]'
+
+  packages:
+    - name: all Brewfile formulae installed
+      cmd: check_brewfile formula
+    - name: all Brewfile casks installed
+      cmd: check_brewfile cask
+
+  defaults:
+    - name: Finder ShowPathbar = true
+      cmd: '[[ "$(defaults read com.apple.finder ShowPathbar 2>/dev/null)" == "1" ]]'
+
+  files:
+    - name: every chezmoi managed entry exists in ~
+      cmd: check_managed_files
+
+  secrets:
+    - name: ~/.config/fish/conf.d/env.secret.fish is plaintext
+      cmd: check_plaintext "$HOME/.config/fish/conf.d/env.secret.fish"
+    - name: ~/.config/git/config.secret is plaintext
+      cmd: check_plaintext "$HOME/.config/git/config.secret"
+
+  external:
+    - name: oh-my-tmux is a git checkout
+      cmd: '[[ -d "$HOME/.local/share/tmux/oh-my-tmux/.git" ]]'
+    - name: oh-my-tmux .tmux.conf present
+      cmd: '[[ -f "$HOME/.local/share/tmux/oh-my-tmux/.tmux.conf" ]]'
+    - name: ~/.config/tmux/tmux.conf -> oh-my-tmux
+      cmd: '[[ "$(readlink "$HOME/.config/tmux/tmux.conf")" == *oh-my-tmux/.tmux.conf ]]'
+
+  shell:
+    - name: fish $SHELL points at fish
+      cmd: fish -c 'string match -q "*fish" -- "$SHELL"'
+    - name: fish $EDITOR points at nvim
+      cmd: fish -c 'string match -q "*nvim" -- "$EDITOR"'
+    - name: fish fn dots
+      cmd: fish -c 'functions -q dots'
+    - name: fish fn dotfiles-check
+      cmd: fish -c 'functions -q dotfiles-check'
+    - name: fish fn ll
+      cmd: fish -c 'functions -q ll'
+    - name: fish fn keychain-env
+      cmd: fish -c 'functions -q keychain-env'

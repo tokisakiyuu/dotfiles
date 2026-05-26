@@ -37,6 +37,32 @@ check_plaintext() {
   fi
 }
 
+# check_github_auth
+#   pass if git's credential helper can produce a github.com credential AND
+#   that credential actually authenticates against the GitHub API.
+check_github_auth() {
+  local resp username token http_code
+  resp=$(printf 'protocol=https\nhost=github.com\n\n' \
+         | GIT_TERMINAL_PROMPT=0 git credential fill 2>/dev/null) || {
+    echo "git credential helper produced no credential for github.com" >&2
+    return 1
+  }
+  username=$(awk -F= '/^username=/{print $2}' <<<"$resp")
+  token=$(awk -F= '/^password=/{print $2}' <<<"$resp")
+  [[ -n "$username" && -n "$token" ]] || {
+    echo "credential helper returned empty username/password" >&2
+    return 1
+  }
+  http_code=$(curl -s -o /dev/null -w '%{http_code}' \
+              --max-time 5 \
+              -u "$username:$token" \
+              https://api.github.com/user)
+  if [[ "$http_code" != "200" ]]; then
+    echo "GitHub API rejected the credential (HTTP $http_code)" >&2
+    return 1
+  fi
+}
+
 # check_managed_files
 #   pass if every chezmoi-managed entry exists at its target path
 check_managed_files() {

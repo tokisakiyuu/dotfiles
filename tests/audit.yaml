@@ -46,6 +46,12 @@ sections:
     - name: ~/.config/tmux/tmux.conf -> oh-my-tmux
       cmd: '[[ "$(readlink "$HOME/.config/tmux/tmux.conf")" == *oh-my-tmux/.tmux.conf ]]'
 
+  auth:
+    - name: git authenticates against GitHub (needed for private repo clones)
+      cmd: check_github_auth
+    - name: $CLAUDE_CODE_OAUTH_TOKEN is set in fish
+      cmd: fish -c 'test -n "$CLAUDE_CODE_OAUTH_TOKEN"'
+
   shell:
     - name: fish $SHELL points at fish
       cmd: fish -c 'string match -q "*fish" -- "$SHELL"'

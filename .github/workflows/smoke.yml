@@ -38,23 +38,11 @@ jobs:
         run: |
           "$HOME/.local/bin/chezmoi" init
 
-      - name: chezmoi apply (dotfiles only, skip run_once_* installers)
-        # 跳过 .chezmoiscripts/ 里的 run_once_* 脚本: 我们想验证 dotfiles + external + 加密解密能跑通,
-        # 不想真的装 100 个 brew 包. brew 安装单独在下一步用 --no-cask 验证.
+      - name: chezmoi apply (full, run_once_* included)
+        # 不排除 scripts: 我们就是要让 brew.sh / packages.sh / defaults.sh 真的跑,
+        # tests/smoke.sh 在下一步会校验它们的产出.
         run: |
-          "$HOME/.local/bin/chezmoi" apply --exclude=scripts
+          "$HOME/.local/bin/chezmoi" apply
 
-      - name: chezmoi verify (target state matches source)
-        run: |
-          "$HOME/.local/bin/chezmoi" verify --exclude=scripts
-
-      - name: Brewfile dry validate (no-cask, no-upgrade)
-        # macOS runner 预装大量 brew 包, 跑一遍 bundle install 主要验证 Brewfile 语法和 tap 可达.
-        run: |
-          brew bundle check --file="$HOME/.config/brew/Brewfile" --no-upgrade --verbose || true
-          brew bundle install --file="$HOME/.config/brew/Brewfile" --no-upgrade --no-lock --quiet --formulae-only
-
-      - name: Smoke check shell entry
-        # 把 fish 跑起来, 确保 config.fish 不抛错, 且关键 env 被设上.
-        run: |
-          /opt/homebrew/bin/fish -c 'echo SHELL=$SHELL; echo EDITOR=$EDITOR; echo PATH=$PATH | tr ":" "\n" | head'
+      - name: Verify installer scripts landed
+        run: bash "$HOME/.local/share/chezmoi/tests/smoke.sh"

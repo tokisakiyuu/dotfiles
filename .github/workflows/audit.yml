@@ -60,8 +60,9 @@ jobs:
       - name: Run install/macos/defaults.sh
         run: bash "$HOME/.local/share/chezmoi/install/macos/defaults.sh"
 
-      - name: Audit post-apply state (skip casks + auth)
-        # auth probes git credential helper + GitHub API, neither is set up on
-        # a fresh CI runner. Casks are excluded for the same reason packages
-        # are filtered above.
-        run: bash "$HOME/.local/share/chezmoi/tests/audit.sh" --except casks auth
+      - name: Audit post-apply state (skip casks)
+        # Casks are excluded for the same reason packages are filtered above.
+        # Everything else runs — including `auth`, since the whole point of CI
+        # is to assert that a freshly-applied machine is actually usable
+        # (git can clone private repos, Claude Code has its token, etc.).
+        run: bash "$HOME/.local/share/chezmoi/tests/audit.sh" --except casks

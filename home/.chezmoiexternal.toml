@@ -1,0 +1,8 @@
+[".local/share/tmux/oh-my-tmux"]
+    type = "git-repo"
+    url = "https://github.com/gpakosz/.tmux.git"
+    refreshPeriod = "168h"
+    [".local/share/tmux/oh-my-tmux".clone]
+        args = ["--depth", "1"]
+    [".local/share/tmux/oh-my-tmux".pull]
+        args = ["--ff-only"]

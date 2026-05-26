@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
 
-declare -r DOTFILES_REPO_URL="https://github.com/shunk031/dotfiles"
+set -Eeuo pipefail
 
-sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin
-local chezmoi_cmd="${bin_dir}/chezmoi"
+if [ "${DOTFILES_DEBUG:-}" ]; then
+  set -x
+fi
 
-"${chezmoi_cmd}" init "${DOTFILES_REPO_URL}" \
+readonly DOTFILES_REPO_URL="https://github.com/tokisakiyuu/dotfiles"
+readonly BIN_DIR="${HOME}/.local/bin"
+readonly CHEZMOI_CMD="${BIN_DIR}/chezmoi"
+
+sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "${BIN_DIR}"
+
+"${CHEZMOI_CMD}" init "${DOTFILES_REPO_URL}" \
   --force \
   --use-builtin-git true
 
-rm -fv "${chezmoi_cmd}"
+rm -fv "${CHEZMOI_CMD}"

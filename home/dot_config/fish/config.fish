@@ -3,7 +3,11 @@ if status is-interactive
 end
 
 # Homebrew
-/opt/homebrew/bin/brew shellenv | source
+if test -x /opt/homebrew/bin/brew
+    /opt/homebrew/bin/brew shellenv | source
+else if test -x /usr/local/bin/brew
+    /usr/local/bin/brew shellenv | source
+end
 
 # Terminal shell prompt (installed by Homebrew)
 # https://starship.rs/
@@ -11,14 +15,15 @@ starship init fish | source
 # Suppress all startship warnings
 set -gx STARSHIP_LOG error
 
-# Auto set http/https proxy
-if test -n (lsof -Pi :7890 -sTCP:LISTEN | string collect)
+# Auto set http/https proxy. `nc -z` is much cheaper than `lsof` on macOS,
+# and this check runs on every shell startup.
+if nc -z 127.0.0.1 7890 2>/dev/null
     set -gx http_proxy http://127.0.0.1:7890
     set -gx https_proxy http://127.0.0.1:7890
     set -gx all_proxy socks5://127.0.0.1:7890
 end
 
-set -gx SHELL /opt/homebrew/bin/fish
+set -gx SHELL (command -v fish)
 
 # XDG basedir
 # https://wiki.archlinux.org/title/XDG_Base_Directory
@@ -44,4 +49,4 @@ set -gx _ZO_DATA_DIR "$HOME/.local/share/z"
 zoxide init fish | source
 
 # Command Editor command
-set -gx EDITOR /opt/homebrew/bin/nvim
+set -gx EDITOR (command -v nvim)

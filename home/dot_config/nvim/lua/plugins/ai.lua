@@ -79,6 +79,26 @@ return {
               mode = "t",
               desc = "Hide",
             },
+            claude_to_normal = {
+              "<C-g>",
+              function()
+                local keys = vim.api.nvim_replace_termcodes([[<C-\><C-n>]], true, false, true)
+                vim.api.nvim_feedkeys(keys, "n", false)
+              end,
+              mode = "t",
+              desc = "Enter normal mode",
+            },
+            -- Override snacks default that turns double-esc into normal mode;
+            -- Claude Code TUI uses double-esc for rewind.
+            term_normal = {
+              "<esc>",
+              function()
+                return "<esc>"
+              end,
+              mode = "t",
+              expr = true,
+              desc = "Pass esc through (disable double-esc to normal)",
+            },
             claude_goto_file = {
               "gF",
               goto_file_under_cursor,

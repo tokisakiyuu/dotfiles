@@ -1,5 +1,38 @@
 local toggle_key = [[<C-\>]]
 
+local function goto_file_under_cursor(self)
+  local cword = vim.fn.expand("<cWORD>")
+  local file, line, col = cword:match("([^:%s]+):(%d+):?(%d*)")
+  if not file or file == "" then
+    file = vim.fn.expand("<cfile>")
+    line, col = nil, nil
+  end
+  if not file or file == "" then
+    vim.notify("No file under cursor", vim.log.levels.WARN)
+    return
+  end
+
+  local found = vim.fn.findfile(file, ".;")
+  if found == "" then
+    if vim.fn.filereadable(file) == 1 then
+      found = file
+    else
+      vim.notify("File not found: " .. file, vim.log.levels.WARN)
+      return
+    end
+  end
+
+  self:hide()
+  vim.schedule(function()
+    vim.cmd("edit " .. vim.fn.fnameescape(found))
+    if line and line ~= "" then
+      local row = tonumber(line) or 1
+      local col_n = math.max(0, (tonumber(col) or 1) - 1)
+      pcall(vim.api.nvim_win_set_cursor, 0, { row, col_n })
+    end
+  end)
+end
+
 return {
   {
     "coder/claudecode.nvim",
@@ -34,9 +67,9 @@ return {
         ---@type snacks.win.Config|{}
         snacks_win_opts = {
           position = "float",
-          width = 0.9,
-          height = 0.9,
-          border = "rounded",
+          width = 0,
+          height = 0,
+          border = "none",
           keys = {
             claude_hide = {
               toggle_key,
@@ -45,6 +78,11 @@ return {
               end,
               mode = "t",
               desc = "Hide",
+            },
+            claude_goto_file = {
+              "gF",
+              goto_file_under_cursor,
+              desc = "Goto file under cursor and hide Claude",
             },
           },
         },

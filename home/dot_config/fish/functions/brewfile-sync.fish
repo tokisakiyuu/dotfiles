@@ -7,5 +7,5 @@ function brewfile-sync --description 'Dump current brew state into ~/.config/bre
     end
 
     command brew bundle dump --file "$bf" --force; or return 1
-    echo "✓ $bf updated. Run 'dots' to commit."
+    echo "✓ $bf updated."
 end

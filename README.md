@@ -50,33 +50,44 @@ tests/                              # post-apply state audit
 
 ## Day-to-day
 
-### You changed something under `~` and want to push it
+The repo's convention is **`~` is the source of truth**, so the daily flow runs in two directions. The "pull" half is straight chezmoi-recommended commands; the "push back" half pulls without `apply` so it doesn't interrupt the collection step with per-file overwrite prompts.
+
+### Pull remote changes (source → `~`)
 
 ```fish
-dots
+chezmoi update                          # = chezmoi git pull --autostash --rebase + chezmoi apply
 ```
 
-`dots` does the whole loop:
+If a target file in `~` was modified since chezmoi last wrote it, `apply` prompts before overwriting — pick overwrite / skip / diff / merge / quit. To preview first instead of trusting the prompt:
 
-1. `chezmoi update` — pull and apply remote changes first (otherwise re-add could overwrite them with your stale local target)
-2. `chezmoi status` — list paths that differ
-3. `fzf` multi-select with diff preview — pick what to keep
-4. `chezmoi re-add` — copy selected target files back into source
-5. Prompt for a commit message
-6. `git commit && git push`
+```fish
+chezmoi git pull -- --autostash --rebase
+chezmoi diff
+chezmoi apply
+```
 
-### You want chezmoi to start managing a new file
+### Push your `~` changes back (`~` → source)
+
+```fish
+chezmoi git pull -- --autostash --rebase   # update source without writing to ~
+chezmoi status                              # list paths that differ
+chezmoi re-add <path>...                    # copy ~ contents back into source
+cd (chezmoi source-path)/..
+git add -A
+git commit
+git push
+```
+
+Don't reach for `chezmoi update` here. `apply` would prompt once per modified file before letting `re-add` run, and even after answering "keep" the source still doesn't reflect `~` — `re-add` is what actually closes the loop, so the prompt detour is just noise. Pulling without applying skips it.
+
+For a real conflict (you and another machine edited the same file) use `chezmoi merge <path>` — three-way merge between source, target, and destination states.
+
+### Start managing a new file
 
 ```fish
 chezmoi add ~/.config/newthing.conf
 cd (chezmoi source-path)/..
 git add -A; git commit; git push
-```
-
-### Sync changes from another machine
-
-```fish
-chezmoi update      # equivalent to chezmoi git pull + chezmoi apply
 ```
 
 ### Manually audit `~`
@@ -96,7 +107,6 @@ bash tests/audit.sh --list                # show available sections
 
 | Command | What it does |
 | --- | --- |
-| `dots` | Daily loop: pull → pick → re-add → commit → push |
 | `dotfiles-check` | Local lint: shellcheck + `fish -n` + `chezmoi diff` |
 | `brewfile-sync` | `brew bundle dump` into `~/.config/brew/Brewfile`; run after `brew install`/`uninstall` |
 | `ll` | `eza` alias with icons and sorting |
@@ -109,13 +119,15 @@ bash tests/audit.sh --list                # show available sections
 
 | Command | What it does |
 | --- | --- |
-| `chezmoi update` | git pull + apply, one-step sync from remote |
-| `chezmoi apply` | source → target (note: also runs `run_once_*` by default) |
+| `chezmoi update` | `git pull --autostash --rebase` + `chezmoi apply`; one-step sync from remote |
+| `chezmoi git pull -- --autostash --rebase` | pull source without applying — use before `re-add` |
+| `chezmoi apply` | source → target (also runs `run_once_*` by default; prompts on locally-modified targets) |
 | `chezmoi apply --exclude=scripts` | sync dotfiles only, skip scripts |
 | `chezmoi re-add [path]` | reverse sync: target → source |
 | `chezmoi add <path>` | start managing a new file |
 | `chezmoi diff` | preview what source → target would change |
 | `chezmoi status` | git-status-style listing of differing paths |
+| `chezmoi merge <path>` | three-way merge (source / target / destination) for resolving conflicts |
 | `chezmoi managed` | list every path chezmoi manages |
 | `chezmoi source-path` | print the source root directory |
 | `chezmoi edit <path>` | open the source file in `$EDITOR` (only safe way to edit encrypted files) |
@@ -164,7 +176,7 @@ chezmoi apply --refresh-externals
 
 ## Things to watch out for
 
-1. **Don't reverse the `update` → `re-add` order.** `dots` handles this automatically, but if you do it by hand, run `chezmoi update` first. Doing `re-add` first overwrites the source with your local stale target, which silently throws away whatever the other machine just pushed.
+1. **Don't reverse the pull → `re-add` order.** Always run `chezmoi git pull -- --autostash --rebase` (or `chezmoi update`) before `chezmoi re-add`. Unlike `apply` (which prompts on locally-modified targets), `re-add` does *not* prompt — running it first silently overwrites the source with your stale local target, throwing away whatever the other machine just pushed.
 
 2. **Edit encrypted files at the target, not the source.** Open `~/.config/fish/conf.d/env.secret.fish` in `nvim` as plaintext; `chezmoi re-add` will encrypt it back into the source `.age` file. **Never edit the `encrypted_*.age` files in source** — that's ciphertext.
 
@@ -187,7 +199,7 @@ chezmoi apply --refresh-externals
 
 10. **chezmoi keeps state by script hash.** A `run_once_*` script only runs the first time, but if you change its contents the hash changes and it runs again. The scripts therefore have to be idempotent — and they are: `install_homebrew` short-circuits when brew is present, `brew bundle install --no-upgrade` is a no-op when nothing's missing, `defaults write` is idempotent by definition.
 
-11. **`rm` is a fish-only shield.** The wrapper at `home/dot_config/fish/functions/rm.fish` refuses to delete paths listed in two lists at the top of the file: `protected_paths` (exact files or directories) and `protected_paths_recursive` (directory subtrees, the root and everything beneath). Edit those lists in source, then `dots` to commit. Anything else passes through to the real `rm`. This only catches interactive fish shells — `command rm`, bash/zsh, scripts, cron jobs, and other non-fish callers bypass it.
+11. **`rm` is a fish-only shield.** The wrapper at `home/dot_config/fish/functions/rm.fish` refuses to delete paths listed in two lists at the top of the file: `protected_paths` (exact files or directories) and `protected_paths_recursive` (directory subtrees, the root and everything beneath). Edit those lists in source, then commit and push from `(chezmoi source-path)/..`. Anything else passes through to the real `rm`. This only catches interactive fish shells — `command rm`, bash/zsh, scripts, cron jobs, and other non-fish callers bypass it.
 
 ---
 
@@ -195,7 +207,7 @@ chezmoi apply --refresh-externals
 
 | Symptom | Likely cause |
 | --- | --- |
-| `chezmoi diff` shows changes to a file you didn't touch | A program edited it (e.g. nvim's `lazy-lock.json`). Pick or skip with `dots`. |
+| `chezmoi diff` shows changes to a file you didn't touch | A program edited it (e.g. nvim's `lazy-lock.json`). Re-add it to keep the change, or `chezmoi apply` to discard it. |
 | audit `secrets decrypted` fails | `~/.config/chezmoi/age-key.txt` is missing, wrong, or not `chmod 600` |
 | audit `external` fails | network issue or oh-my-tmux upstream change; retry with `chezmoi apply --refresh-externals` |
 | A `run_once` script won't run | chezmoi state already recorded it ran. Either change the script's contents (changes its hash) or `chezmoi state delete-bucket --bucket=scriptState` to reset all `once` scripts. |

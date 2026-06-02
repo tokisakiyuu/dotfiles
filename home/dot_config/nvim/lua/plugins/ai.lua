@@ -62,6 +62,7 @@ return {
       auto_start = true,
       focus_after_send = true,
       terminal = {
+        provider = "none",
         -- split_width_percentage = 0.50,
         ---@module "snacks"
         ---@type snacks.win.Config|{}

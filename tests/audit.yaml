@@ -57,8 +57,6 @@ sections:
       cmd: fish -c 'string match -q "*fish" -- "$SHELL"'
     - name: fish $EDITOR points at nvim
       cmd: fish -c 'string match -q "*nvim" -- "$EDITOR"'
-    - name: fish fn dots
-      cmd: fish -c 'functions -q dots'
     - name: fish fn dotfiles-check
       cmd: fish -c 'functions -q dotfiles-check'
     - name: fish fn ll

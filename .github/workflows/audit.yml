@@ -54,6 +54,9 @@ jobs:
         # vars that can't blanket-exclude. Easiest workaround: grep the cask
         # lines out into a scratch Brewfile.
         run: |
+          # GitHub runners ship a baked-in formula index with auto-update off,
+          # so newly-cored formulae (e.g. bun) may be missing. Refresh first.
+          brew update
           grep -v '^cask' "$HOME/.config/brew/Brewfile" > /tmp/Brewfile.nocask
           brew bundle install --no-upgrade --file=/tmp/Brewfile.nocask
 

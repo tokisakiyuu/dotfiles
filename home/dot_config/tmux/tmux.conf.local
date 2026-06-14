@@ -446,13 +446,19 @@ bind Right select-pane -ZR #!important
 
 source "$HOME/.config/tmux/scripts/launcher.tmux"
 
-# OSC52 clipboard: relay yanks from inside tmux (incl. over SSH) back to the
-# local terminal emulator's system clipboard.
+# OSC52 clipboard: relay yanks from inside tmux (incl. over SSH and nested
+# tmux) back to the local terminal emulator's system clipboard.
 #   set-clipboard on   - tmux forwards OSC52 from inner apps (Neovim, etc.)
 #                        and emits OSC52 itself when copying in copy-mode
 #   allow-passthrough  - let DCS-wrapped escapes through too (tmux 3.3+)
+#   terminal-features  - mark tmux/screen/xterm TERMs as OSC52-capable so a
+#                        nested-tmux outer layer will forward instead of
+#                        silently swallowing (terminfo lacks 'Ms' by default)
 set -g set-clipboard on #!important
 set -g allow-passthrough on #!important
+set -as terminal-features ',xterm*:clipboard' #!important
+set -as terminal-features ',tmux*:clipboard' #!important
+set -as terminal-features ',screen*:clipboard' #!important
 
 # -- tpm -----------------------------------------------------------------------
 

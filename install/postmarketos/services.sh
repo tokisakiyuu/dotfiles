@@ -62,11 +62,38 @@ function alias_kitty_terminfo() {
   ln -sf /usr/share/terminfo/k/kitty "$HOME/.terminfo/x/xterm-kitty"
 }
 
+function ensure_lan_firewall_rule() {
+  # Open every port to RFC1918 sources so devices on any LAN we attach to
+  # (home WiFi, hotspot, work net) can hit services on the phone without
+  # per-port nftables rules. Public IPs still hit the policy=drop default.
+  local target=/etc/nftables.d/00_lan.nft
+  local desired
+  desired=$(cat <<'NFT'
+table inet filter {
+    chain input {
+        ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } accept comment "Allow all RFC1918 LAN traffic"
+    }
+}
+NFT
+)
+  # Skip rewrite + reload when the file is already exactly right - keeps
+  # repeat chezmoi runs from churning the firewall.
+  if [[ -r "$target" ]] && printf '%s\n' "$desired" | diff -q - "$target" >/dev/null 2>&1; then
+    return 0
+  fi
+  printf '%s\n' "$desired" | sudo tee "$target" >/dev/null
+  sudo chmod 0644 "$target"
+  # `reload` re-reads the static ruleset without a flush window where
+  # established connections could be cut. `restart` would briefly drop them.
+  sudo systemctl reload nftables
+}
+
 function main() {
   enable_docker
   add_user_to_docker_group
   set_default_shell_to_fish
   alias_kitty_terminfo
+  ensure_lan_firewall_rule
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

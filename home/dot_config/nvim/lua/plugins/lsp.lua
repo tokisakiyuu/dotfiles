@@ -66,6 +66,12 @@ return {
             "htmlangular",
           },
         },
+        -- On non-Darwin tell LazyVim to skip Mason for lua_ls — the distro
+        -- package (`apk add lua-language-server`) lives on PATH and Mason has
+        -- no musl release. `mason = false` is LazyVim's documented escape hatch.
+        -- On Darwin `nil` evaporates from the table literal, so the entry is
+        -- left to LazyVim's defaults.
+        lua_ls = is_darwin and nil or { mason = false },
       },
     },
   },

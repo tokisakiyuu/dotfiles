@@ -16,3 +16,18 @@ opt.jumpoptions = "stack"
 -- Set terminal window title
 vim.o.title = true
 vim.o.titlestring = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
+
+-- Over SSH, route the system clipboard through OSC52 so yanks reach the local
+-- terminal's clipboard (tmux must have set-clipboard=on to pass it through).
+-- LazyVim deliberately blanks `clipboard` under SSH (assumes no provider) -
+-- we force it back to `unnamedplus` because the OSC52 provider below fills
+-- that gap.
+if os.getenv("SSH_TTY") then
+  local osc52 = require("vim.ui.clipboard.osc52")
+  vim.g.clipboard = {
+    name = "OSC 52",
+    copy = { ["+"] = osc52.copy("+"), ["*"] = osc52.copy("*") },
+    paste = { ["+"] = osc52.paste("+"), ["*"] = osc52.paste("*") },
+  }
+  opt.clipboard = "unnamedplus"
+end

@@ -26,6 +26,10 @@ readonly PACKAGES=(
   # tailwindcss, graphql, jsonls, prismals) via the system npm.
   nodejs
   npm
+  # Mason has no musl-linux release for these; install the distro packages
+  # instead and nvim-lspconfig/conform pick them up from PATH.
+  lua-language-server
+  stylua
   # fd — Snacks.picker.explorer + LazyVim file pickers.
   fd
   # Mason archive deps. busybox provides gzip as an applet but Mason looks

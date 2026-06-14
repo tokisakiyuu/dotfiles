@@ -24,6 +24,12 @@ readonly PACKAGES=(
   # tailwindcss, graphql, jsonls, prismals) via the system npm.
   nodejs
   npm
+  # fd — Snacks.picker.explorer + LazyVim file pickers.
+  fd
+  # Mason archive deps. busybox provides gzip as an applet but Mason looks
+  # for the GNU binary path explicitly; ditto unzip.
+  unzip
+  gzip
   ripgrep
   fzf
   zoxide

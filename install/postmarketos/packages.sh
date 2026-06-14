@@ -20,6 +20,10 @@ readonly PACKAGES=(
   # build-base ships gcc/g++/make/musl-dev — required for nvim-treesitter
   # to compile parsers on first use.
   build-base
+  # nodejs + npm — Mason installs npm-based LSPs (eslint, vtsls,
+  # tailwindcss, graphql, jsonls, prismals) via the system npm.
+  nodejs
+  npm
   ripgrep
   fzf
   zoxide

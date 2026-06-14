@@ -1,3 +1,21 @@
+-- Mason ships rust_analyzer as a glibc-linked release binary that won't run
+-- on musl-based pmOS. Gate it on Darwin so Mason only tries to install it
+-- where it actually works. To use rust_analyzer on Linux instead, install
+-- the distro package (e.g. `apk add rust-analyzer`) and remove it here.
+local is_darwin = vim.uv.os_uname().sysname == "Darwin"
+
+local mason_servers = {
+  "vtsls",
+  "tailwindcss",
+  "eslint",
+  "graphql",
+  "jsonls",
+  "prismals",
+}
+if is_darwin then
+  table.insert(mason_servers, "rust_analyzer")
+end
+
 return {
   -- https://github.com/LazyVim/LazyVim/discussions/830#discussioncomment-7757328
   {
@@ -59,15 +77,7 @@ return {
   {
     "mason-org/mason-lspconfig.nvim",
     opts = {
-      ensure_installed = {
-        "vtsls", -- typescript lsp
-        "tailwindcss",
-        "rust_analyzer", -- rsut lsp
-        "eslint",
-        "graphql",
-        "jsonls", -- json files lsp
-        "prismals",
-      },
+      ensure_installed = mason_servers,
     },
   },
 

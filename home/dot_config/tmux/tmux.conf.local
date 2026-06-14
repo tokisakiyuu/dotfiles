@@ -284,7 +284,7 @@ cwd_format="#{s|$HOME/Space/projects/([^/]+)|#[fg=#b4f9b4]\\1#[default]|:$cwd_fo
 cwd_format="#{s|$HOME|~|:$cwd_format}"
 # =============================================================================
 
-tmux_conf_theme_status_right=" #{prefix}#{pairing} $cwd_format #[fg=#ffffff]#{?battery_percentage, #{battery_percentage},} %H:%M #[default]"
+tmux_conf_theme_status_right=" #{prefix}#{pairing} $cwd_format #[fg=#ffffff]#{any_battery}%H:%M #[default]"
 
 # status left style
 tmux_conf_theme_status_left_fg="#ffffff"
@@ -551,6 +551,31 @@ tmux_conf_uninstall_plugins_on_reload=true
 #   url="https://api.github.com/repos/${repository:-gpakosz/.tmux}"
 #   curl -s "$url" | perl -MJSON::PP=decode_json -CO -0777 -E '$response = decode_json(readline *STDIN); say ($response->{stargazers_count})'
 #   sleep 300                                         # sleep for 5 minutes, throttle network requests whatever the value of status-interval
+# }
+#
+# # usage: #{any_battery}
+# # Cross-platform battery reader. Replaces oh-my-tmux's built-in
+# # #{battery_percentage} which on Linux only matches /sys/class/power_supply/*bat*
+# # and misses fuel-gauge chips like bq27411 (pmos on OnePlus 6, etc.).
+# # Emits "<NN>% " with a trailing space when a battery exists, empty otherwise -
+# # so the consumer can splice it inline without worrying about padding.
+# any_battery() {
+#   pct=
+#   case "$(uname -s)" in
+#     Darwin)
+#       pct=$(pmset -g batt 2>/dev/null | grep -E -o '[0-9]+%' | head -n 1)
+#       ;;
+#     Linux)
+#       for d in /sys/class/power_supply/*; do
+#         [ -r "$d/type" ] || continue
+#         [ "$(cat "$d/type" 2>/dev/null)" = Battery ] || continue
+#         [ -r "$d/capacity" ] || continue
+#         pct="$(cat "$d/capacity")%"
+#         break
+#       done
+#       ;;
+#   esac
+#   [ -n "$pct" ] && printf '%s ' "$pct"
 # }
 #
 # "$@"

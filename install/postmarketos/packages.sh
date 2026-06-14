@@ -11,6 +11,7 @@ fi
 readonly PACKAGES=(
   bash
   curl
+  chezmoi
   fish
   starship
   git

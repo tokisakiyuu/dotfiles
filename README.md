@@ -46,14 +46,15 @@ tests/                              # post-apply state audit
    ```sh
    curl -fsSL https://raw.githubusercontent.com/tokisakiyuu/dotfiles/main/setup.sh | bash
    ```
-   `setup.sh` is idempotent — re-running on a machine that's already initialized just prints a notice and exits.
-
-   On **postmarketOS** make sure `bash` and `sudo` are present first (`apk add bash sudo` as root, plus add your user to the `wheel` group so `sudo` works). The bootstrap is bash-shebang based.
-3. `chezmoi apply` to deploy dotfiles to `~` and run the per-OS `run_once_*` scripts:
+   `setup.sh` does three things end-to-end: fetch a chezmoi binary (uses the one on PATH if present, otherwise drops a throwaway under `~/.local/bin`), `chezmoi init` the source tree (skipped if it already exists), then **`chezmoi apply`** — which is what actually runs the per-OS install scripts:
    - **macOS** — install brew, install Brewfile, write macOS defaults.
-   - **postmarketOS** — `apk add` daily-driver packages, enable `docker.service`, add `$USER` to the `docker` group, and `chsh` to fish.
-4. `bash tests/audit.sh` to confirm everything landed. Sections constrained by `section_os:` in `tests/audit.yaml` are skipped on OSes that don't match.
-5. On **postmarketOS**: log out and back in once for the new `docker` group and the fish login shell to take effect.
+   - **postmarketOS** — `apk add` daily-driver packages (including chezmoi itself), enable `docker.service`, add `$USER` to the `docker` group, and `chsh` to fish.
+
+   The throwaway chezmoi is deleted only after a package-manager copy is detected on PATH, so a partial run never leaves the host without a working chezmoi. Safe to re-run.
+
+   On **postmarketOS** make sure `bash`, `sudo`, and `curl` are present first (`apk add bash sudo curl` as root, plus add your user to the `wheel` group so `sudo` works).
+3. `bash tests/audit.sh` to confirm everything landed. Sections constrained by `section_os:` in `tests/audit.yaml` are skipped on OSes that don't match.
+4. On **postmarketOS**: log out and back in once for the new `docker` group and the fish login shell to take effect.
 
 ---
 

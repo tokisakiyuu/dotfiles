@@ -35,8 +35,12 @@ set -g fish_greeting ''
 set -gx PNPM_HOME "$HOME/.local/share/pnpm"
 set -gx PATH "$PNPM_HOME:$PATH"
 
-# Rust Toolchains
-set -gx PATH "$HOME/.rustup/toolchains/stable-aarch64-apple-darwin/bin:$HOME/.cargo/bin:$PATH"
+# Rust Toolchains — discover host triple at runtime so the same line works on
+# macOS (stable-aarch64-apple-darwin), Linux/musl, Linux/gnu, etc.
+for tc in $HOME/.rustup/toolchains/stable-*/bin
+    test -d $tc; and set -gx PATH $tc $PATH
+end
+test -d $HOME/.cargo/bin; and set -gx PATH $HOME/.cargo/bin $PATH
 
 # Terminal programs UI language
 set -gx LANG "en_US.UTF-8"

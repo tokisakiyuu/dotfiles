@@ -21,6 +21,18 @@ CHECKS_LIB="${SELF_DIR}/checks.sh"
 [[ -f "$CONFIG" ]] || { echo "audit: config not found: $CONFIG" >&2; exit 2; }
 command -v yq >/dev/null 2>&1 || { echo "audit: yq (for YAML) is required: brew install yq" >&2; exit 2; }
 
+# Detect the host OS so `section_os` constraints in audit.yaml can filter
+# sections that don't apply here. We expose two values:
+#   host_os_kernel  — uname lowercased: darwin | linux
+#   host_os_id      — distro ID from /etc/os-release on Linux, else $host_os_kernel
+host_os_kernel=$(uname -s | tr '[:upper:]' '[:lower:]')
+if [[ "$host_os_kernel" == "linux" && -r /etc/os-release ]]; then
+  # shellcheck disable=SC1091  # /etc/os-release is a well-known system file
+  host_os_id=$( . /etc/os-release; printf '%s' "${ID:-linux}" )
+else
+  host_os_id="$host_os_kernel"
+fi
+
 # Load helpers and export every check_* function so cmd: subshells see them.
 # shellcheck source=./checks.sh
 # shellcheck disable=SC1091  # source path is dynamic; the directive above tells shellcheck where to look when run with -x
@@ -46,6 +58,31 @@ parse_checks() {
 
 parse_sections() {
   yq -r '.sections | keys | .[]' "$CONFIG"
+}
+
+# Build a lookup of section_os constraints. Sections not listed are unconstrained.
+declare -A SECTION_OS
+while IFS=$'\t' read -r sname rest; do
+  [[ -z "$sname" ]] && continue
+  SECTION_OS["$sname"]="$rest"
+done < <(yq -r '
+  .section_os // {}
+  | to_entries[]
+  | (.key + "\t" + (.value | join(" ")))
+' "$CONFIG")
+
+section_allowed() {
+  local s=$1
+  # `local s=$1 oslist=${SECTION_OS[$s]:-}` would break under `set -u`:
+  # bash evaluates RHSs left-to-right but doesn't bind $s until the whole
+  # `local` statement finishes, so $s is "unbound" when the next RHS runs.
+  local oslist="${SECTION_OS[$s]:-}"
+  [[ -z "$oslist" ]] && return 0   # unconstrained section
+  local os
+  for os in $oslist; do
+    [[ "$os" == "$host_os_kernel" || "$os" == "$host_os_id" ]] && return 0
+  done
+  return 1
 }
 
 usage() {
@@ -89,6 +126,7 @@ current_section=""
 
 while IFS=$'\t' read -r section name cmd_b64; do
   in_array "$section" "${WANTED[@]}" || continue
+  section_allowed "$section" || continue
   if [[ "$section" != "$current_section" ]]; then
     printf '\n── %s ──\n' "$section"
     current_section=$section

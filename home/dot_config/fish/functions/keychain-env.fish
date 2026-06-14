@@ -1,5 +1,10 @@
 # https://gist.github.com/bmhatfield/f613c10e360b4f27033761bbee4404fd
 function keychain-env -d "Managing environment variable."
+    if test (uname) != Darwin
+        echo "keychain-env: only implemented on macOS (uses /usr/bin/security)" >&2
+        return 1
+    end
+
     argparse d= -- $argv
     or return
 

@@ -1,3 +1,8 @@
 **/README.md
 **/LICENSE
 **/LICENSE.*
+
+{{ if ne .chezmoi.os "darwin" -}}
+dot_config/brew
+dot_config/kitty
+{{- end }}

@@ -6,6 +6,18 @@
 # A check passes if its `cmd:` exits 0. Stdout/stderr of failed checks is
 # shown for triage. Helpers (check_brewfile, check_plaintext, ...) live in
 # tests/checks.sh and are auto-exported into each cmd's subshell.
+#
+# `section_os` constrains a section to specific operating systems. Values can be
+# kernel names (`darwin`, `linux`) or `/etc/os-release` IDs (`postmarketos`).
+# Sections not listed here run on every OS.
+
+section_os:
+  brew: [darwin]
+  packages: [darwin]
+  casks: [darwin]
+  defaults: [darwin]
+  docker: [postmarketos]
+  pmos-services: [postmarketos]
 
 sections:
   brew:
@@ -27,6 +39,20 @@ sections:
   defaults:
     - name: Finder ShowPathbar = true
       cmd: '[[ "$(defaults read com.apple.finder ShowPathbar 2>/dev/null)" == "1" ]]'
+
+  docker:
+    - name: docker on PATH
+      cmd: command -v docker >/dev/null
+    - name: docker.service enabled
+      cmd: '[[ "$(systemctl is-enabled docker.service 2>/dev/null)" == enabled ]]'
+    - name: docker.service active
+      cmd: systemctl is-active --quiet docker.service
+    - name: current user is in docker group
+      cmd: id -nG "$USER" | tr ' ' '\n' | grep -qx docker
+
+  pmos-services:
+    - name: login shell is fish
+      cmd: '[[ "$(getent passwd "$USER" | awk -F: ''{print $7}'')" == *fish ]]'
 
   files:
     - name: every chezmoi managed entry exists in ~

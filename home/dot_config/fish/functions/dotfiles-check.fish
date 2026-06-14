@@ -4,8 +4,18 @@ function dotfiles-check --description 'Lint dotfiles before pushing'
 
     set -l rc 0
 
+    set -l shell_targets setup.sh
+    # Lint every per-OS install script that exists in this checkout.
+    for d in install/macos install/postmarketos
+        if test -d $d
+            for f in $d/*.sh
+                test -f $f; and set -a shell_targets $f
+            end
+        end
+    end
+
     echo '▶ shellcheck'
-    shellcheck setup.sh install/macos/*.sh; or set rc 1
+    shellcheck $shell_targets; or set rc 1
 
     echo '▶ fish -n'
     for f in (find home/dot_config/fish -name '*.fish')

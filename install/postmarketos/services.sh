@@ -48,10 +48,25 @@ function set_default_shell_to_fish() {
   sudo chsh -s "$fish_bin" "$USER"
 }
 
+function alias_kitty_terminfo() {
+  # ncurses upstream ships the entry as `kitty` but Kitty itself sends
+  # TERM=xterm-kitty, so a fresh SSH from a Kitty client fails with
+  # "missing or unsuitable terminal" until we alias. Skip if either the
+  # system already has xterm-kitty or the source entry is missing.
+  if [[ -e /usr/share/terminfo/x/xterm-kitty ]] \
+     || [[ -e "$HOME/.terminfo/x/xterm-kitty" ]] \
+     || [[ ! -e /usr/share/terminfo/k/kitty ]]; then
+    return 0
+  fi
+  mkdir -p "$HOME/.terminfo/x"
+  ln -sf /usr/share/terminfo/k/kitty "$HOME/.terminfo/x/xterm-kitty"
+}
+
 function main() {
   enable_docker
   add_user_to_docker_group
   set_default_shell_to_fish
+  alias_kitty_terminfo
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

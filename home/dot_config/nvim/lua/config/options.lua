@@ -27,15 +27,30 @@ vim.o.titlestring = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
 -- terminals (iTerm2 default) refuse the OSC52 GET query for security, the
 -- query then times out and Neovim disables the whole provider mid-session -
 -- which silently breaks copy too. See LazyVim OSC52 recipe.
+--
+-- We force-reload the provider script because Neovim's autoload caches its
+-- "no provider found" decision the first time clipboard is accessed - and
+-- something in startup occasionally trips that BEFORE g:clipboard is set,
+-- which permanently breaks yanks for the session. unlet + runtime makes
+-- the script re-evaluate with our g:clipboard in place.
 if os.getenv("SSH_TTY") then
-  local osc52 = require("vim.ui.clipboard.osc52")
-  local function paste()
-    return { vim.fn.split(vim.fn.getreg(""), "\n"), vim.fn.getregtype("") }
+  local function setup_osc52_clipboard()
+    local osc52 = require("vim.ui.clipboard.osc52")
+    local function paste()
+      return { vim.fn.split(vim.fn.getreg(""), "\n"), vim.fn.getregtype("") }
+    end
+    vim.g.clipboard = {
+      name = "OSC 52",
+      copy = { ["+"] = osc52.copy("+"), ["*"] = osc52.copy("*") },
+      paste = { ["+"] = paste, ["*"] = paste },
+    }
+    vim.opt.clipboard = "unnamedplus"
+    vim.g.loaded_clipboard_provider = nil
+    vim.cmd("runtime autoload/provider/clipboard.vim")
   end
-  vim.g.clipboard = {
-    name = "OSC 52",
-    copy = { ["+"] = osc52.copy("+"), ["*"] = osc52.copy("*") },
-    paste = { ["+"] = paste, ["*"] = paste },
-  }
-  opt.clipboard = "unnamedplus"
+  setup_osc52_clipboard()
+  vim.api.nvim_create_autocmd("VimEnter", {
+    once = true,
+    callback = setup_osc52_clipboard,
+  })
 end

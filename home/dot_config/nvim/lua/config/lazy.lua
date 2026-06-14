@@ -54,4 +54,8 @@ require("lazy").setup({
   ui = {
     border = "double", -- single or rounded or double
   },
+  -- No plugin in this config pulls a luarocks dependency. Disabling the
+  -- integration silences the `luarocks not installed` healthcheck error,
+  -- which is otherwise just noise.
+  rocks = { enabled = false },
 })

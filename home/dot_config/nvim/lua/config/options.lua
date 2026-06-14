@@ -22,12 +22,20 @@ vim.o.titlestring = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
 -- LazyVim deliberately blanks `clipboard` under SSH (assumes no provider) -
 -- we force it back to `unnamedplus` because the OSC52 provider below fills
 -- that gap.
+--
+-- Paste uses the local register instead of the builtin osc52.paste: most
+-- terminals (iTerm2 default) refuse the OSC52 GET query for security, the
+-- query then times out and Neovim disables the whole provider mid-session -
+-- which silently breaks copy too. See LazyVim OSC52 recipe.
 if os.getenv("SSH_TTY") then
   local osc52 = require("vim.ui.clipboard.osc52")
+  local function paste()
+    return { vim.fn.split(vim.fn.getreg(""), "\n"), vim.fn.getregtype("") }
+  end
   vim.g.clipboard = {
     name = "OSC 52",
     copy = { ["+"] = osc52.copy("+"), ["*"] = osc52.copy("*") },
-    paste = { ["+"] = osc52.paste("+"), ["*"] = osc52.paste("*") },
+    paste = { ["+"] = paste, ["*"] = paste },
   }
   opt.clipboard = "unnamedplus"
 end

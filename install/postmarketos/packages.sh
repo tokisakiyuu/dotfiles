@@ -17,6 +17,9 @@ readonly PACKAGES=(
   git
   tmux
   neovim
+  # build-base ships gcc/g++/make/musl-dev — required for nvim-treesitter
+  # to compile parsers on first use.
+  build-base
   ripgrep
   fzf
   zoxide

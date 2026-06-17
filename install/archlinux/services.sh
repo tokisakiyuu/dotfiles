@@ -94,10 +94,12 @@ CONF
   fi
   printf '%s\n' "$desired" | sudo tee "$target" >/dev/null
   sudo chmod 0644 "$target"
-  # zram-generator is a systemd generator: daemon-reload re-runs it, then the
-  # setup service mkswap+swapon's the device without needing a reboot.
+  # zram-generator is a systemd generator: daemon-reload re-runs it to (re)create
+  # the units. Restart the .swap unit specifically — it pulls in the setup
+  # service to size the device and then actually swapon's it. Restarting the
+  # setup service alone leaves the device created but swap off.
   sudo systemctl daemon-reload
-  sudo systemctl restart systemd-zram-setup@zram0.service
+  sudo systemctl restart dev-zram0.swap
 }
 
 function main() {

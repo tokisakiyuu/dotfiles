@@ -20,6 +20,9 @@ readonly PACMAN_PACKAGES=(
   docker
   docker-buildx
   docker-compose
+  # Compressed RAM-backed swap (configured in services.sh). The phone has no
+  # swap by default and limited RAM, so heavy nvim+LSP/docker/brew work can OOM.
+  zram-generator
 )
 
 # Anthropic native install script. Auto-updates in the background and drops the

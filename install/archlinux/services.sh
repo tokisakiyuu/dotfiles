@@ -73,12 +73,40 @@ function alias_kitty_terminfo() {
   ln -sf /usr/share/terminfo/k/kitty "$HOME/.terminfo/x/xterm-kitty"
 }
 
+function ensure_zram_swap() {
+  # Compressed RAM-backed swap so the phone's limited memory doesn't OOM under
+  # neovim+LSP/docker/brew builds. zram-generator (installed by packages.sh)
+  # turns this declarative config into a swap device via a systemd generator;
+  # the kernel ships zram builtin with zstd as its default backend. Sized at
+  # half of RAM, capped at 4G.
+  local target=/etc/systemd/zram-generator.conf
+  local desired
+  desired=$(cat <<'CONF'
+[zram0]
+zram-size = min(ram / 2, 4096)
+compression-algorithm = zstd
+CONF
+)
+  # Skip rewrite + reload when the file is already exactly right, so repeat
+  # runs don't tear the swap device down and back up.
+  if [[ -r "$target" ]] && printf '%s\n' "$desired" | diff -q - "$target" >/dev/null 2>&1; then
+    return 0
+  fi
+  printf '%s\n' "$desired" | sudo tee "$target" >/dev/null
+  sudo chmod 0644 "$target"
+  # zram-generator is a systemd generator: daemon-reload re-runs it, then the
+  # setup service mkswap+swapon's the device without needing a reboot.
+  sudo systemctl daemon-reload
+  sudo systemctl restart systemd-zram-setup@zram0.service
+}
+
 function main() {
   load_brew_env
   enable_docker
   add_user_to_docker_group
   set_default_shell_to_fish
   alias_kitty_terminfo
+  ensure_zram_swap
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

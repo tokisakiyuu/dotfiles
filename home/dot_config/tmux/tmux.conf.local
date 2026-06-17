@@ -450,8 +450,6 @@ bind Down  select-pane -ZD #!important
 bind Up    select-pane -ZU #!important
 bind Right select-pane -ZR #!important
 
-source "$HOME/.config/tmux/scripts/launcher.tmux"
-
 # OSC52 clipboard: relay yanks from inside tmux (incl. over SSH and nested
 # tmux) back to the local terminal emulator's system clipboard.
 #   set-clipboard on   - tmux forwards OSC52 from inner apps (Neovim, etc.)

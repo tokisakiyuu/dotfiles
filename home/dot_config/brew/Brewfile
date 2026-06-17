@@ -1,37 +1,72 @@
+# Bourne-Again SHell, a UNIX command interpreter
 brew "bash"
+# Incredibly fast JavaScript runtime, bundler, test runner, and package manager
 brew "bun"
+# Manage your dotfiles across multiple diverse machines, securely
 brew "chezmoi"
+# Container runtimes on MacOS (and Linux) with minimal setup
 brew "colima"
+# Pack, ship and run any application as a lightweight container
 brew "docker"
+# Isolated development environments using Docker
 brew "docker-compose"
+# Modern, maintained replacement for ls
 brew "eza"
+# User-friendly command-line shell for UNIX-like operating systems
 brew "fish"
+# Command-line fuzzy finder written in Go
 brew "fzf"
+# GitHub command-line tool
 brew "gh"
+# Distributed revision control system
 brew "git"
+# Improved top (interactive process viewer)
 brew "htop"
+# Feature-rich interactive Jira CLI
 brew "jira-cli"
+# Simple terminal UI for git commands
 brew "lazygit"
+# Open-source, cross-platform JavaScript runtime environment
 brew "node"
+# MongoDB Shell to connect, configure, query, and work with your MongoDB database
 brew "mongosh"
+# Ambitious Vim-fork focused on extensibility and agility
 brew "neovim"
+# 7-Zip (high compression file archiver) implementation
 brew "p7zip"
+# Generic machine emulator and virtualizer
 brew "qemu"
+# Search tool like grep and The Silver Searcher
 brew "ripgrep"
+# Rust toolchain installer
 brew "rustup"
+# Static analysis and lint tool, for (ba)sh scripts
 brew "shellcheck"
+# Cross-shell prompt for astronauts
 brew "starship"
+# Official tldr client written in Rust
 brew "tlrc"
+# Terminal multiplexer
 brew "tmux"
+# Parser generator tool
 brew "tree-sitter-cli"
+# Process YAML, JSON, XML, CSV and properties documents from the CLI
 brew "yq"
+# Shell extension to navigate your filesystem faster
 brew "zoxide"
+# Application uninstaller
 cask "appcleaner"
+# Another Mihomo GUI
 cask "clash-party"
+# Terminal-based AI coding assistant
 cask "claude-code"
-cask "font-hack-nerd-font"
+cask "font-jetbrains-mono-nerd-font"
+# Web browser
 cask "google-chrome"
+# GPU-based terminal emulator
 cask "kitty"
+# Utility to uninstall apps and remove leftover files from old/uninstalled apps
 cask "pearcleaner"
+# NetEase UU remote desktop access and control tool
 cask "uuremote"
 npm "corepack"

@@ -13,7 +13,7 @@ readonly CHEZMOI_SOURCE="${HOME}/.local/share/chezmoi"
 readonly AGE_KEY="${HOME}/.config/chezmoi/age-key.txt"
 
 # Resolve a usable chezmoi: prefer a package-manager copy on PATH (brew on
-# macOS, apk on pmOS), fall back to a throwaway binary fetched from
+# macOS and Arch Linux), fall back to a throwaway binary fetched from
 # get.chezmoi.io. We only delete the throwaway later if a real one shows up.
 bootstrapped=0
 if command -v chezmoi >/dev/null 2>&1; then
@@ -44,10 +44,10 @@ warning: age private key not found at ${AGE_KEY}
 EOF
 fi
 
-# `apply` is the step that actually installs everything (brew on macOS, apk on
-# pmOS) including a package-manager copy of chezmoi. Without it the throwaway
-# binary would be the only chezmoi on disk, and the cleanup below would leave
-# the host with no chezmoi at all.
+# `apply` is the step that actually installs everything (brew on macOS; pacman
+# + brew on Arch) including a package-manager copy of chezmoi. Without it the
+# throwaway binary would be the only chezmoi on disk, and the cleanup below
+# would leave the host with no chezmoi at all.
 "${chezmoi_bin}" apply
 
 # Retire the throwaway only when a package-manager copy is now on PATH;

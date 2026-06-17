@@ -2,12 +2,18 @@ if status is-interactive
     # Commands to run in interactive sessions can go here
 end
 
-# Homebrew
+# Homebrew (Apple Silicon, Intel mac, Linux)
 if test -x /opt/homebrew/bin/brew
     /opt/homebrew/bin/brew shellenv | source
 else if test -x /usr/local/bin/brew
     /usr/local/bin/brew shellenv | source
+else if test -x /home/linuxbrew/.linuxbrew/bin/brew
+    /home/linuxbrew/.linuxbrew/bin/brew shellenv | source
 end
+
+# claude-code's native installer drops its binary here; fish doesn't add it by
+# default. Harmless on macOS where the path may not exist.
+fish_add_path -g $HOME/.local/bin
 
 # Terminal shell prompt (installed by Homebrew)
 # https://starship.rs/

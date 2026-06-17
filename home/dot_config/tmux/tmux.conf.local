@@ -556,7 +556,7 @@ tmux_conf_uninstall_plugins_on_reload=true
 # # usage: #{any_battery}
 # # Cross-platform battery reader. Replaces oh-my-tmux's built-in
 # # #{battery_percentage} which on Linux only matches /sys/class/power_supply/*bat*
-# # and misses fuel-gauge chips like bq27411 (pmos on OnePlus 6, etc.).
+# # and misses fuel-gauge chips like the bq27411 on the OnePlus 6 (fajita).
 # # Emits "<NN>% " with a trailing space when a battery exists, empty otherwise -
 # # so the consumer can splice it inline without worrying about padding.
 # any_battery() {

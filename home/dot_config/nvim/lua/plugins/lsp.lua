@@ -1,21 +1,7 @@
+-- rust dev only happens on the Mac, so rust_analyzer is the one server gated
+-- behind Darwin. Everything else installs via Mason on every platform — the
+-- Arch Linux ARM host is glibc, so Mason's prebuilt arm64 binaries work.
 local is_darwin = vim.uv.os_uname().sysname == "Darwin"
-
--- Mason's release manifests for these packages have no musl-linux build, so
--- on Alpine/pmOS the installer fails with "The current platform is
--- unsupported." Filter them out of every ensure_installed list on non-Darwin
--- and let the musl-native distro packages take over (see
--- install/postmarketos/packages.sh — lua-language-server, stylua;
--- rust-analyzer is available too but we don't ship rust on pmOS).
-local mason_musl_unsupported = { "lua_ls", "rust_analyzer", "stylua" }
-
-local function strip_musl_unsupported(list)
-  if is_darwin or not list then
-    return list
-  end
-  return vim.tbl_filter(function(name)
-    return not vim.tbl_contains(mason_musl_unsupported, name)
-  end, list)
-end
 
 local mason_servers = {
   "vtsls",
@@ -66,12 +52,6 @@ return {
             "htmlangular",
           },
         },
-        -- On non-Darwin tell LazyVim to skip Mason for lua_ls — the distro
-        -- package (`apk add lua-language-server`) lives on PATH and Mason has
-        -- no musl release. `mason = false` is LazyVim's documented escape hatch.
-        -- On Darwin `nil` evaporates from the table literal, so the entry is
-        -- left to LazyVim's defaults.
-        lua_ls = is_darwin and nil or { mason = false },
       },
     },
   },
@@ -94,17 +74,10 @@ return {
     },
   },
   {
-    "mason-org/mason.nvim",
-    opts = function(_, opts)
-      opts.ensure_installed = strip_musl_unsupported(opts.ensure_installed)
-    end,
-  },
-  {
     "mason-org/mason-lspconfig.nvim",
     opts = function(_, opts)
       opts.ensure_installed = opts.ensure_installed or {}
       vim.list_extend(opts.ensure_installed, mason_servers)
-      opts.ensure_installed = strip_musl_unsupported(opts.ensure_installed)
     end,
   },
 

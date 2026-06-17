@@ -8,16 +8,16 @@
 # tests/checks.sh and are auto-exported into each cmd's subshell.
 #
 # `section_os` constrains a section to specific operating systems. Values can be
-# kernel names (`darwin`, `linux`) or `/etc/os-release` IDs (`postmarketos`).
+# kernel names (`darwin`, `linux`) or `/etc/os-release` IDs (`archarm`).
 # Sections not listed here run on every OS.
 
 section_os:
-  brew: [darwin]
-  packages: [darwin]
+  brew: [darwin, archarm]
+  packages: [darwin, archarm]
   casks: [darwin]
   defaults: [darwin]
-  docker: [postmarketos]
-  pmos-services: [postmarketos]
+  docker: [archarm]
+  arch-services: [archarm]
 
 sections:
   brew:
@@ -50,7 +50,7 @@ sections:
     - name: current user is in docker group
       cmd: id -nG "$USER" | tr ' ' '\n' | grep -qx docker
 
-  pmos-services:
+  arch-services:
     - name: login shell is fish
       cmd: '[[ "$(getent passwd "$USER" | awk -F: ''{print $7}'')" == *fish ]]'
 

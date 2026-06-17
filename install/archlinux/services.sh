@@ -6,12 +6,13 @@ if [ "${DOTFILES_DEBUG:-}" ]; then
   set -x
 fi
 
-# Post-package setup: enable docker, add user to docker group, switch login shell to fish.
-# Idempotent — re-running is a no-op once everything is in place.
+# Post-package setup: enable docker, add user to docker group, switch login
+# shell to fish, alias the kitty terminfo entry. Idempotent — re-running is a
+# no-op once everything is in place.
 
 function enable_docker() {
-  # docker.service is TriggeredBy docker.socket; enabling both makes startup explicit
-  # and survives upstream changes to the trigger relationship.
+  # docker.service is TriggeredBy docker.socket; enabling both makes startup
+  # explicit and survives upstream changes to the trigger relationship.
   sudo systemctl enable --now docker.socket docker.service
 }
 
@@ -19,12 +20,13 @@ function add_user_to_docker_group() {
   if id -nG "$USER" | tr ' ' '\n' | grep -qx docker; then
     return 0
   fi
-  # `addgroup` exists on Alpine/pmOS via the `shadow` package and busybox.
-  # `getent group docker` works once the docker package has created the group.
+  # groupadd/usermod ship with util-linux/shadow on Arch (Alpine's
+  # addgroup/adduser don't exist here). The docker package already creates the
+  # group, so groupadd is usually a no-op guarded by getent.
   if ! getent group docker >/dev/null 2>&1; then
-    sudo addgroup docker
+    sudo groupadd docker
   fi
-  sudo adduser "$USER" docker
+  sudo usermod -aG docker "$USER"
   echo "Note: log out and back in for the docker group membership to take effect." >&2
 }
 
@@ -32,7 +34,7 @@ function set_default_shell_to_fish() {
   local fish_bin
   fish_bin=$(command -v fish || true)
   if [[ -z "$fish_bin" ]]; then
-    echo "fish not found on PATH; packages.sh should have installed it." >&2
+    echo "fish not found on PATH; packages.sh should have installed it via brew." >&2
     return 1
   fi
   # Register fish in /etc/shells if missing so chsh accepts it.
@@ -62,38 +64,11 @@ function alias_kitty_terminfo() {
   ln -sf /usr/share/terminfo/k/kitty "$HOME/.terminfo/x/xterm-kitty"
 }
 
-function ensure_lan_firewall_rule() {
-  # Open every port to RFC1918 sources so devices on any LAN we attach to
-  # (home WiFi, hotspot, work net) can hit services on the phone without
-  # per-port nftables rules. Public IPs still hit the policy=drop default.
-  local target=/etc/nftables.d/00_lan.nft
-  local desired
-  desired=$(cat <<'NFT'
-table inet filter {
-    chain input {
-        ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } accept comment "Allow all RFC1918 LAN traffic"
-    }
-}
-NFT
-)
-  # Skip rewrite + reload when the file is already exactly right - keeps
-  # repeat chezmoi runs from churning the firewall.
-  if [[ -r "$target" ]] && printf '%s\n' "$desired" | diff -q - "$target" >/dev/null 2>&1; then
-    return 0
-  fi
-  printf '%s\n' "$desired" | sudo tee "$target" >/dev/null
-  sudo chmod 0644 "$target"
-  # `reload` re-reads the static ruleset without a flush window where
-  # established connections could be cut. `restart` would briefly drop them.
-  sudo systemctl reload nftables
-}
-
 function main() {
   enable_docker
   add_user_to_docker_group
   set_default_shell_to_fish
   alias_kitty_terminfo
-  ensure_lan_firewall_rule
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

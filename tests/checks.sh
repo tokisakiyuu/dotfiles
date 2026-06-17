@@ -8,10 +8,16 @@
 # and `return 1`.
 
 # check_brewfile <formula|cask>
-#   pass if every formula/cask declared in ~/.config/brew/Brewfile is currently installed
+#   pass if every formula/cask declared in the OS-appropriate Brewfile is
+#   currently installed. macOS uses Brewfile (formulae + casks); Linux uses
+#   Brewfile.linux (formulae only — Homebrew has no cask support on Linux).
 check_brewfile() {
   local kind=$1 bf installed line name
-  bf="$HOME/.config/brew/Brewfile"
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    bf="$HOME/.config/brew/Brewfile"
+  else
+    bf="$HOME/.config/brew/Brewfile.linux"
+  fi
   [[ -f "$bf" ]] || { echo "Brewfile not found at $bf" >&2; return 1; }
   installed=$(brew list "--$kind" -1 2>/dev/null | sort -u)
   while IFS= read -r line; do

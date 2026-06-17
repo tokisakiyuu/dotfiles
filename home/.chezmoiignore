@@ -2,7 +2,9 @@
 **/LICENSE
 **/LICENSE.*
 
-{{ if ne .chezmoi.os "darwin" -}}
-dot_config/brew
+{{ if eq .chezmoi.os "darwin" -}}
+dot_config/brew/Brewfile.linux
+{{- else -}}
+dot_config/brew/Brewfile
 dot_config/kitty
 {{- end }}

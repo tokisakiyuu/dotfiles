@@ -1,6 +1,6 @@
 # dotfiles
 
-Personal dotfiles for macOS (Apple Silicon and Intel) and postmarketOS (ARM), managed by [chezmoi](https://www.chezmoi.io/).
+Personal dotfiles for macOS (Apple Silicon and Intel) and Arch Linux ARM, managed by [chezmoi](https://www.chezmoi.io/).
 
 The core convention is **`~` is the source of truth, not `source/`**. Day to day you edit files under `~` (or let programs edit them for you) and then use `chezmoi re-add` to copy the changes back into source, commit, and push. This is the opposite of the more common "edit source, apply to `~`" chezmoi workflow.
 
@@ -14,16 +14,16 @@ install/macos/
   ├── brew.sh                       # install Homebrew, turn off analytics
   ├── packages.sh                   # brew bundle install
   └── defaults.sh                   # write macOS system defaults
-install/postmarketos/
-  ├── packages.sh                   # sudo apk add: tmux/neovim/docker/zoxide/eza/lazygit/fish/...
-  └── services.sh                   # enable docker, add user to docker group, chsh fish
+install/archlinux/
+  ├── packages.sh                   # pacman (docker), brew bundle (Brewfile.linux), claude-code installer
+  └── services.sh                   # enable docker, add user to docker group, chsh fish, kitty terminfo
 
 home/                               # chezmoi source root (.chezmoiroot=home)
   ├── .chezmoi.toml.tmpl            # chezmoi config template (age encryption settings)
-  ├── .chezmoiignore                # template; pmOS skips brew/kitty configs
+  ├── .chezmoiignore                # template; non-macOS skips kitty + the other OS's Brewfile
   ├── .chezmoiexternal.toml         # external dependencies (oh-my-tmux, ...)
   ├── .chezmoiscripts/macos/        # run_once_before_* / run_once_after_* (darwin only)
-  ├── .chezmoiscripts/postmarketos/ # run_once_after_* (postmarketos only)
+  ├── .chezmoiscripts/archlinux/    # run_once_after_* (archarm only)
   ├── dot_config/                   # -> ~/.config/
   └── private_dot_local/            # -> ~/.local/  (forced to 0700)
 
@@ -48,13 +48,13 @@ tests/                              # post-apply state audit
    ```
    `setup.sh` does three things end-to-end: fetch a chezmoi binary (uses the one on PATH if present, otherwise drops a throwaway under `~/.local/bin`), `chezmoi init` the source tree (skipped if it already exists), then **`chezmoi apply`** — which is what actually runs the per-OS install scripts:
    - **macOS** — install brew, install Brewfile, write macOS defaults.
-   - **postmarketOS** — `apk add` daily-driver packages (including chezmoi itself), enable `docker.service`, add `$USER` to the `docker` group, and `chsh` to fish.
+   - **Arch Linux ARM** — `pacman -S` the docker daemon, `brew bundle` the daily-driver CLI tools from `Brewfile.linux`, install claude-code via Anthropic's native installer, enable `docker.service`, add `$USER` to the `docker` group, and `chsh` to fish.
 
    The throwaway chezmoi is deleted only after a package-manager copy is detected on PATH, so a partial run never leaves the host without a working chezmoi. Safe to re-run.
 
-   On **postmarketOS** make sure `bash`, `sudo`, and `curl` are present first (`apk add bash sudo curl` as root, plus add your user to the `wheel` group so `sudo` works).
+   On **Arch Linux ARM** make sure `bash`, `sudo`, and `curl` are present and that [Homebrew on Linux](https://docs.brew.sh/Homebrew-on-Linux) is already installed (the package script drives `brew bundle`); also add your user to the `wheel` group so `sudo` works.
 3. `bash tests/audit.sh` to confirm everything landed. Sections constrained by `section_os:` in `tests/audit.yaml` are skipped on OSes that don't match.
-4. On **postmarketOS**: log out and back in once for the new `docker` group and the fish login shell to take effect.
+4. On **Arch Linux ARM**: log out and back in once for the new `docker` group and the fish login shell to take effect.
 
 ---
 
@@ -197,7 +197,7 @@ chezmoi apply --refresh-externals
    - Add a matching `defaults read` check in the `defaults` section of `tests/audit.yaml`
    - No renaming needed: changing the script's hash makes chezmoi re-run it next apply
 
-5. **Adding a brew package**: edit `home/dot_config/brew/Brewfile`. Next `chezmoi apply` will let `packages.sh` install it via `brew bundle install`. `check_brewfile formula/cask` in the audit will verify it. (macOS only; the Brewfile is ignored on pmOS via `.chezmoiignore`.)
+5. **Adding a brew package**: edit `home/dot_config/brew/Brewfile` on macOS, or `home/dot_config/brew/Brewfile.linux` on Arch (formulae only — Homebrew has no cask support on Linux). Next `chezmoi apply` will let `packages.sh` install it via `brew bundle install`. `check_brewfile formula/cask` in the audit will verify it. Each OS only sees its own Brewfile; `.chezmoiignore` hides the other one.
 
 6. **Adding a new chezmoi script**: always pick `run_once_before_*` or `run_once_after_*` explicitly. See the script naming note above.
 
@@ -209,7 +209,7 @@ chezmoi apply --refresh-externals
 
 10. **chezmoi keeps state by script hash.** A `run_once_*` script only runs the first time, but if you change its contents the hash changes and it runs again. The scripts therefore have to be idempotent — and they are: `install_homebrew` short-circuits when brew is present, `brew bundle install --no-upgrade` is a no-op when nothing's missing, `defaults write` is idempotent by definition.
 
-11. **postmarketOS specifics.** The pmOS path uses `apk` directly (no equivalent to Brewfile — keep it minimal). Edit the inline `PACKAGES=(...)` list in `install/postmarketos/packages.sh` to add or drop tools. `keychain-env` is macOS-only (it uses `/usr/bin/security`); on pmOS it returns an error rather than misbehaving. The Rust toolchain block in `config.fish` is glob-driven (`stable-*/bin`) and silently no-ops when `~/.rustup` doesn't exist — pmOS gets no rust, no PATH pollution.
+11. **Arch Linux ARM specifics.** The Arch host is glibc + [Homebrew on Linux](https://docs.brew.sh/Homebrew-on-Linux), so it mirrors macOS closely: CLI tools come from `brew bundle` (`Brewfile.linux`), and only the docker daemon (which brew can't manage on Linux) is installed via `pacman` — edit the inline `PACMAN_PACKAGES=(...)` list in `install/archlinux/packages.sh` for system-level packages. claude-code can't come from brew (its formula is a macOS-only cask), so `install_claude_code` runs Anthropic's native installer instead. Because it's glibc, Mason installs its prebuilt arm64 binaries normally — no musl workarounds in `nvim/lua/plugins/lsp.lua` (only `rust_analyzer` is gated to macOS, since rust dev only happens there). `keychain-env` is macOS-only (it uses `/usr/bin/security`); elsewhere it returns an error rather than misbehaving. The Rust toolchain block in `config.fish` is glob-driven (`stable-*/bin`) and silently no-ops when `~/.rustup` doesn't exist — Arch gets no rust, no PATH pollution.
 
 12. **`rm` is a fish-only shield.** The wrapper at `home/dot_config/fish/functions/rm.fish` refuses to delete paths listed in two lists at the top of the file: `protected_paths` (exact files or directories) and `protected_paths_recursive` (directory subtrees, the root and everything beneath). Edit those lists in source, then commit and push from `(chezmoi source-path)/..`. Anything else passes through to the real `rm`. This only catches interactive fish shells — `command rm`, bash/zsh, scripts, cron jobs, and other non-fish callers bypass it.
 

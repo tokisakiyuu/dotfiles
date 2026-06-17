@@ -102,6 +102,32 @@ CONF
   sudo systemctl restart dev-zram0.swap
 }
 
+function ensure_flash_swapfile() {
+  # Low-priority flash-backed swap as an OOM safety net *below* zram (pri 100).
+  # zram lives in RAM and this kernel can't spill incompressible pages anywhere
+  # (CONFIG_ZRAM_WRITEBACK is off), so this file is the slow last resort before
+  # the OOM killer. Kept small on purpose — a cushion, not primary swap; flash
+  # swap is slow and thrashes.
+  local file=/swapfile
+  local size_mb=2048
+  local prio=10
+  if [[ ! -f "$file" ]]; then
+    # dd, not fallocate: swapon rejects files with holes, and the rootfs is a
+    # loop-backed ext4 image where fully-written blocks are the safe bet.
+    sudo dd if=/dev/zero of="$file" bs=1M count="$size_mb" status=none
+    sudo chmod 600 "$file"
+    sudo mkswap "$file" >/dev/null
+  fi
+  # Persist across boots via fstab; append only when no entry references it.
+  if ! grep -qE "^${file}[[:space:]]" /etc/fstab; then
+    printf '%s none swap defaults,pri=%s 0 0\n' "$file" "$prio" | sudo tee -a /etc/fstab >/dev/null
+  fi
+  # Activate now if it isn't already swapped on.
+  if ! swapon --show=NAME --noheadings | grep -qxF "$file"; then
+    sudo swapon --priority "$prio" "$file"
+  fi
+}
+
 function main() {
   load_brew_env
   enable_docker
@@ -109,6 +135,7 @@ function main() {
   set_default_shell_to_fish
   alias_kitty_terminfo
   ensure_zram_swap
+  ensure_flash_swapfile
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

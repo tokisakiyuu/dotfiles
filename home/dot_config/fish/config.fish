@@ -22,8 +22,9 @@ starship init fish | source
 set -gx STARSHIP_LOG error
 
 # Auto set http/https proxy. `nc -z` is much cheaper than `lsof` on macOS,
-# and this check runs on every shell startup.
-if nc -z 127.0.0.1 7890 2>/dev/null
+# and this check runs on every shell startup. Guarded on nc existing so hosts
+# without netcat (e.g. a bare Arch install) don't error out on every startup.
+if command -q nc; and nc -z 127.0.0.1 7890 2>/dev/null
     set -gx http_proxy http://127.0.0.1:7890
     set -gx https_proxy http://127.0.0.1:7890
     set -gx all_proxy socks5://127.0.0.1:7890

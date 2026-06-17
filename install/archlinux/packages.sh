@@ -56,6 +56,12 @@ function install_pacman_packages() {
   sudo pacman -S --needed --noconfirm "${PACMAN_PACKAGES[@]}"
 }
 
+function opt_out_brew_analytics() {
+  # Homebrew is pre-installed on this host (not by us), so unlike macOS there's
+  # no brew.sh to turn analytics off — do it here. Idempotent.
+  brew analytics off
+}
+
 function install_brew_packages() {
   # --no-upgrade keeps the run idempotent: already-installed formulae are not
   # touched, so re-running this script is cheap and safe.
@@ -73,6 +79,7 @@ function main() {
   require_sudo
   load_brew_env
   require_brew
+  opt_out_brew_analytics
   install_pacman_packages
   install_brew_packages
   install_claude_code

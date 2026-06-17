@@ -270,7 +270,7 @@ tmux_conf_theme_right_separator_sub="|"
 #     - #{uptime_s}
 #     - #{username}
 #     - #{username_ssh}
-tmux_conf_theme_status_left="#S "
+tmux_conf_theme_status_left="#S "  # overridden below by a #!important status-left (see status-position section)
 
 # === CWD path → icon mapping =================================================
 # Each line wraps the previous, building a nested tmux substitution chain.
@@ -428,6 +428,12 @@ bind c new-window -c '#{pane_current_path}' #!important
 # remove gap between window status blocks (padding lives inside each block via the format above)
 # #!important is required so this beats oh-my-tmux's _apply_theme which sets the separator to a space
 set -g window-status-separator "" #!important
+
+# Hide the whole left section (session name + its trailing gap space) when only one session.
+# #[...] style blocks are zero-width, so they stay OUTSIDE #{?}; only #S and the gap space are
+# conditioned — a comma inside #[fg=x,bg=y] would be read as a #{?} arg separator and break it.
+# Colours mirror tmux_conf_theme_status_left_fg (#ffffff) and tmux_conf_theme_colour_15 (#16161e).
+set -g status-left "#[fg=#ffffff,bg=default,bold]#{?#{==:#{S:1},1},,#S }#[fg=default,bg=#16161e,none]#{?#{==:#{S:1},1},, }" #!important
 
 # disable bell/activity highlighting on window status blocks (no more "ringing" on update)
 setw -g monitor-bell off

@@ -10,6 +10,15 @@ fi
 # shell to fish, alias the kitty terminfo entry. Idempotent — re-running is a
 # no-op once everything is in place.
 
+function load_brew_env() {
+  # This script runs under chezmoi's non-interactive bash, which has no
+  # linuxbrew on PATH — so brew-installed tools (fish) are invisible without
+  # this. packages.sh does the same before its brew commands.
+  if [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  fi
+}
+
 function enable_docker() {
   # docker.service is TriggeredBy docker.socket; enabling both makes startup
   # explicit and survives upstream changes to the trigger relationship.
@@ -65,6 +74,7 @@ function alias_kitty_terminfo() {
 }
 
 function main() {
+  load_brew_env
   enable_docker
   add_user_to_docker_group
   set_default_shell_to_fish

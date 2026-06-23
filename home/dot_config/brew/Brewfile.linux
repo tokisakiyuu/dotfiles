@@ -1,23 +1,45 @@
+# Bourne-Again SHell, a UNIX command interpreter
 brew "bash"
+# Resource monitor. C++ version and continuation of bashtop and bpytop
+brew "btop"
+# Incredibly fast JavaScript runtime, bundler, test runner, and package manager
 brew "bun"
+# Manage your dotfiles across multiple diverse machines, securely
 brew "chezmoi"
+# Modern, maintained replacement for ls
 brew "eza"
+# User-friendly command-line shell for UNIX-like operating systems
 brew "fish"
+# Command-line fuzzy finder written in Go
 brew "fzf"
+# GitHub command-line tool
 brew "gh"
+# Distributed revision control system
 brew "git"
-brew "htop"
+# Feature-rich interactive Jira CLI
 brew "jira-cli"
+# Simple terminal UI for git commands
 brew "lazygit"
-brew "node"
+# Ambitious Vim-fork focused on extensibility and agility
 brew "neovim"
+# Open-source, cross-platform JavaScript runtime environment
+brew "node"
+# 7-Zip (high compression file archiver) implementation
 brew "p7zip"
+# Search tool like grep and The Silver Searcher
 brew "ripgrep"
+# Static analysis and lint tool, for (ba)sh scripts
 brew "shellcheck"
+# Cross-shell prompt for astronauts
 brew "starship"
+# Official tldr client written in Rust
 brew "tlrc"
+# Terminal multiplexer
 brew "tmux"
+# Parser generator tool
 brew "tree-sitter-cli"
+# Process YAML, JSON, XML, CSV and properties documents from the CLI
 brew "yq"
+# Shell extension to navigate your filesystem faster
 brew "zoxide"
 npm "corepack"

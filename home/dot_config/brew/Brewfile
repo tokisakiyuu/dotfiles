@@ -1,5 +1,7 @@
 # Bourne-Again SHell, a UNIX command interpreter
 brew "bash"
+# Resource monitor. C++ version and continuation of bashtop and bpytop
+brew "btop"
 # Incredibly fast JavaScript runtime, bundler, test runner, and package manager
 brew "bun"
 # Manage your dotfiles across multiple diverse machines, securely
@@ -20,8 +22,6 @@ brew "fzf"
 brew "gh"
 # Distributed revision control system
 brew "git"
-# Improved top (interactive process viewer)
-brew "htop"
 # Feature-rich interactive Jira CLI
 brew "jira-cli"
 # Simple terminal UI for git commands

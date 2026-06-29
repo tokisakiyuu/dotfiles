@@ -447,6 +447,14 @@ bind Down  select-pane -ZD #!important
 bind Up    select-pane -ZU #!important
 bind Right select-pane -ZR #!important
 
+# reorder current window in the window list; focus follows the moved window.
+# { and } default to swap-pane, but < and > are oh-my-tmux aliases for the same
+# swap-pane job, so repurposing { } for window moves keeps pane-swap on < >.
+# { must be quoted or tmux reads it as a command-block opener.
+# -d keeps focus on the window being moved; -r allows repeats within repeat-time.
+bind -r "{" swap-window -d -t -1 #!important
+bind -r "}" swap-window -d -t +1 #!important
+
 # OSC52 clipboard: relay yanks from inside tmux (incl. over SSH and nested
 # tmux) back to the local terminal emulator's system clipboard.
 #   set-clipboard on   - tmux forwards OSC52 from inner apps (Neovim, etc.)

@@ -469,6 +469,9 @@ set -as terminal-features ',xterm*:clipboard' #!important
 set -as terminal-features ',tmux*:clipboard' #!important
 set -as terminal-features ',screen*:clipboard' #!important
 
+# OSC8 hyperlinks: let apps inside tmux emit clickable links (tmux 3.4+)
+set -ga terminal-features "*:hyperlinks" #!important
+
 # -- tpm -----------------------------------------------------------------------
 
 # while I don't use tpm myself, many people requested official support so here

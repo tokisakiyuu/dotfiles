@@ -284,7 +284,14 @@ cwd_format="#{s|$HOME/Space/projects/([^/]+)|#[fg=#b4f9b4]\\1#[default]|:$cwd_fo
 cwd_format="#{s|$HOME|~|:$cwd_format}"
 # =============================================================================
 
-tmux_conf_theme_status_right=" #{prefix}#{pairing} $cwd_format #[fg=#ffffff]#{any_battery}%H:%M #[default]"
+# git branch of the focused pane's cwd, e.g. "on  PHA-609"; prints nothing
+# outside a git repo, falls back to short sha on detached HEAD.
+# #() runs via /bin/sh (not default-shell) and is re-expanded on every redraw.
+# single quotes are required: they keep $(...) from running when this file is
+# shell-sourced, and #{pane_current_path} from being expanded by tmux too early
+git_branch_format='#(cd "#{pane_current_path}" 2>/dev/null && { b=$(git symbolic-ref --short -q HEAD 2>/dev/null) || b=$(git rev-parse --short HEAD 2>/dev/null); } && [ -n "$b" ] && echo "on #[fg=#bb9af7] $b#[default] ")'
+
+tmux_conf_theme_status_right=" #{prefix}#{pairing} $cwd_format $git_branch_format#[fg=#ffffff]#{any_battery}%H:%M #[default]"
 
 # status left style
 tmux_conf_theme_status_left_fg="#ffffff"

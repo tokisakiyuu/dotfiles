@@ -278,8 +278,8 @@ tmux_conf_theme_status_left="#S "  # overridden below by a #!important status-le
 # To add a new mapping, copy any line below and edit the path + icon.
 # To remove one, delete the line.
 cwd_format='pane_current_path'
-cwd_format="#{s|$HOME/Space/work/([^/]+)|#[fg=#b4f9f8]\\1#[default]|:$cwd_format}"
-cwd_format="#{s|$HOME/Space/projects/([^/]+)|#[fg=#b4f9b4]\\1#[default]|:$cwd_format}"
+cwd_format="#{s|$HOME/Space/work/([^/]+)|#[fg=#b4f9f8]\\1#[default]|i:$cwd_format}"
+cwd_format="#{s|$HOME/Space/projects/([^/]+)|#[fg=#b4f9b4]\\1#[default]|i:$cwd_format}"
 # fallback: $HOME → ~  (always keep this last)
 cwd_format="#{s|$HOME|~|:$cwd_format}"
 # =============================================================================

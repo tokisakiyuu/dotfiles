@@ -1,0 +1,47 @@
+name: smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly Monday 14:00 UTC. Catches upstream drift (brew taps disappearing,
+    # external repos moving) before it bites a real machine.
+    - cron: '0 14 * * 1'
+
+jobs:
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src
+
+      - name: Place source at chezmoi default location
+        run: |
+          mkdir -p "$HOME/.local/share"
+          mv src "$HOME/.local/share/chezmoi"
+
+      - name: Provision age key
+        env:
+          AGE_KEY: ${{ secrets.CHEZMOI_AGE_KEY }}
+        run: |
+          mkdir -p "$HOME/.config/chezmoi"
+          umask 077
+          printf '%s' "$AGE_KEY" > "$HOME/.config/chezmoi/age-key.txt"
+
+      - name: Install chezmoi
+        run: sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+
+      - name: chezmoi init (render config, fetch externals)
+        run: |
+          "$HOME/.local/bin/chezmoi" init
+
+      - name: chezmoi apply (smoke test, skip run_once_*)
+        # Pass criterion: apply exits cleanly. Scripts are excluded because
+        # run_once_* pull in casks (chrome, kitty, ...) that are gigabytes on
+        # GitHub macOS runners.
+        run: |
+          "$HOME/.local/bin/chezmoi" apply --exclude=scripts

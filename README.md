@@ -27,14 +27,9 @@ home/                               # chezmoi source root (.chezmoiroot=home)
   ├── dot_config/                   # -> ~/.config/
   └── private_dot_local/            # -> ~/.local/  (forced to 0700)
 
-tests/                              # post-apply state audit
-  ├── audit.sh                      # runtime, data-driven
-  ├── audit.yaml                    # check declarations
-  └── checks.sh                     # helper functions for complex checks
-
 .github/workflows/
   ├── lint.yml                      # every push: shellcheck / fish syntax / template render
-  └── audit.yml                     # manual dispatch + weekly: full apply + audit
+  └── smoke.yml                     # manual dispatch + weekly: chezmoi apply smoke test
 ```
 
 ---
@@ -53,8 +48,7 @@ tests/                              # post-apply state audit
    The throwaway chezmoi is deleted only after a package-manager copy is detected on PATH, so a partial run never leaves the host without a working chezmoi. Safe to re-run.
 
    On **Arch Linux ARM** make sure `bash`, `sudo`, and `curl` are present and that [Homebrew on Linux](https://docs.brew.sh/Homebrew-on-Linux) is already installed (the package script drives `brew bundle`); also add your user to the `wheel` group so `sudo` works.
-3. `bash tests/audit.sh` to confirm everything landed. Sections constrained by `section_os:` in `tests/audit.yaml` are skipped on OSes that don't match.
-4. On **Arch Linux ARM**: log out and back in once for the new `docker` group and the fish login shell to take effect.
+3. On **Arch Linux ARM**: log out and back in once for the new `docker` group and the fish login shell to take effect.
 
 ---
 
@@ -100,15 +94,6 @@ cd (chezmoi source-path)/..
 git add -A; git commit; git push
 ```
 
-### Manually audit `~`
-
-```fish
-bash tests/audit.sh                       # all sections
-bash tests/audit.sh brew defaults         # only these sections
-bash tests/audit.sh --except casks        # everything except this
-bash tests/audit.sh --list                # show available sections
-```
-
 ---
 
 ## Commands
@@ -141,15 +126,6 @@ bash tests/audit.sh --list                # show available sections
 | `chezmoi managed` | list every path chezmoi manages |
 | `chezmoi source-path` | print the source root directory |
 | `chezmoi edit <path>` | open the source file in `$EDITOR` (only safe way to edit encrypted files) |
-
-### audit
-
-| Command | What it does |
-| --- | --- |
-| `bash tests/audit.sh` | run every audit section |
-| `bash tests/audit.sh <section>...` | run only the listed sections |
-| `bash tests/audit.sh --except <section>...` | run every section but the listed ones |
-| `bash tests/audit.sh --list` | print available sections |
 
 ---
 
@@ -194,18 +170,17 @@ chezmoi apply --refresh-externals
 
 4. **Adding a new macOS default**:
    - Add a `defaults write ...` line in `install/macos/defaults.sh`
-   - Add a matching `defaults read` check in the `defaults` section of `tests/audit.yaml`
    - No renaming needed: changing the script's hash makes chezmoi re-run it next apply
 
-5. **Adding a brew package**: edit `home/dot_config/brew/Brewfile` on macOS, or `home/dot_config/brew/Brewfile.linux` on Arch (formulae only — Homebrew has no cask support on Linux). Next `chezmoi apply` will let `packages.sh` install it via `brew bundle install`. `check_brewfile formula/cask` in the audit will verify it. Each OS only sees its own Brewfile; `.chezmoiignore` hides the other one.
+5. **Adding a brew package**: edit `home/dot_config/brew/Brewfile` on macOS, or `home/dot_config/brew/Brewfile.linux` on Arch (formulae only — Homebrew has no cask support on Linux). Next `chezmoi apply` will let `packages.sh` install it via `brew bundle install`. Each OS only sees its own Brewfile; `.chezmoiignore` hides the other one.
 
 6. **Adding a new chezmoi script**: always pick `run_once_before_*` or `run_once_after_*` explicitly. See the script naming note above.
 
 7. **Don't edit `~/.local/share/tmux/oh-my-tmux/` directly.** That's the external git checkout; it gets reset on refresh. Your tmux tweaks belong in `~/.config/tmux/tmux.conf.local`.
 
-8. **CI is not triggered by PRs.** `lint.yml` and `audit.yml` only run on push-to-main, manual dispatch, and the weekly schedule. This is deliberate: it keeps the `CHEZMOI_AGE_KEY` secret out of forked PR contexts.
+8. **CI is not triggered by PRs.** `lint.yml` and `smoke.yml` only run on push-to-main, manual dispatch, and the weekly schedule. This is deliberate: it keeps the `CHEZMOI_AGE_KEY` secret out of forked PR contexts.
 
-9. **CI skips cask installs.** `audit.yml` greps `cask` lines out of the Brewfile before running `brew bundle install` (chrome / kitty / fonts are big downloads that drag macOS-runner time), and the audit step uses `--except casks` to match. A local `chezmoi apply` still installs everything.
+9. **CI is a smoke test only.** `smoke.yml` runs `chezmoi init` + `chezmoi apply --exclude=scripts` and passes if apply exits cleanly. It skips `run_once_*` scripts (brew casks are gigabytes on GitHub runners). A local `chezmoi apply` still installs everything.
 
 10. **chezmoi keeps state by script hash.** A `run_once_*` script only runs the first time, but if you change its contents the hash changes and it runs again. The scripts therefore have to be idempotent — and they are: `install_homebrew` short-circuits when brew is present, `brew bundle install --no-upgrade` is a no-op when nothing's missing, `defaults write` is idempotent by definition.
 
@@ -220,11 +195,11 @@ chezmoi apply --refresh-externals
 | Symptom | Likely cause |
 | --- | --- |
 | `chezmoi diff` shows changes to a file you didn't touch | A program edited it (e.g. nvim's `lazy-lock.json`). Re-add it to keep the change, or `chezmoi apply` to discard it. |
-| audit `secrets decrypted` fails | `~/.config/chezmoi/age-key.txt` is missing, wrong, or not `chmod 600` |
-| audit `external` fails | network issue or oh-my-tmux upstream change; retry with `chezmoi apply --refresh-externals` |
+| secrets fail to decrypt | `~/.config/chezmoi/age-key.txt` is missing, wrong, or not `chmod 600` |
+| an external (e.g. oh-my-tmux) looks stale or broken | network issue or upstream change; retry with `chezmoi apply --refresh-externals` |
 | A `run_once` script won't run | chezmoi state already recorded it ran. Either change the script's contents (changes its hash) or `chezmoi state delete-bucket --bucket=scriptState` to reset all `once` scripts. |
 | `chezmoi apply` says "config file template has changed" | You edited `home/.chezmoi.toml.tmpl`. Run `chezmoi init` once to regenerate `~/.config/chezmoi/chezmoi.toml`. |
-| CI audit fails at `brew bundle` | An upstream tap moved or a package disappeared from the Brewfile. Reproduce locally with `brew bundle check --file=~/.config/brew/Brewfile --verbose`. |
+| CI smoke test fails at `chezmoi apply` | Template render error, secret decryption failure, or an external (e.g. oh-my-tmux) moved. Reproduce locally with `chezmoi apply --dry-run --verbose`. |
 
 ---
 

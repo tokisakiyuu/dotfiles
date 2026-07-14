@@ -29,7 +29,7 @@ home/                               # chezmoi source root (.chezmoiroot=home)
 
 .github/workflows/
   ├── lint.yml                      # every push: shellcheck / fish syntax / template render
-  └── smoke.yml                     # manual dispatch + weekly: chezmoi apply smoke test
+  └── smoke.yml                     # push touching *.sh / *.tmpl (+ manual dispatch): chezmoi apply smoke test
 ```
 
 ---
@@ -178,7 +178,7 @@ chezmoi apply --refresh-externals
 
 7. **Don't edit `~/.local/share/tmux/oh-my-tmux/` directly.** That's the external git checkout; it gets reset on refresh. Your tmux tweaks belong in `~/.config/tmux/tmux.conf.local`.
 
-8. **CI is not triggered by PRs.** `lint.yml` and `smoke.yml` only run on push-to-main, manual dispatch, and the weekly schedule. This is deliberate: it keeps the `CHEZMOI_AGE_KEY` secret out of forked PR contexts.
+8. **CI is not triggered by PRs.** `lint.yml` runs on every push to main; `smoke.yml` only when the push touches `*.sh` or `*.tmpl` files. Both also support manual dispatch. Neither runs on PRs — deliberate, to keep the `CHEZMOI_AGE_KEY` secret out of forked PR contexts.
 
 9. **CI is a smoke test only.** `smoke.yml` runs `chezmoi init` + `chezmoi apply --exclude=scripts` and passes if apply exits cleanly. It skips `run_once_*` scripts (brew casks are gigabytes on GitHub runners). A local `chezmoi apply` still installs everything.
 

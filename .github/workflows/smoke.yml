@@ -2,10 +2,11 @@ name: smoke
 
 on:
   workflow_dispatch:
-  schedule:
-    # Weekly Monday 14:00 UTC. Catches upstream drift (brew taps disappearing,
-    # external repos moving) before it bites a real machine.
-    - cron: '0 14 * * 1'
+  push:
+    branches: [main]
+    paths:
+      - '**.sh'
+      - '**.tmpl'
 
 jobs:
   smoke:

@@ -16,8 +16,12 @@ brew "fzf"
 brew "gh"
 # Distributed revision control system
 brew "git"
+# Self-improving AI agent that creates skills from experience
+brew "hermes-agent"
 # Feature-rich interactive Jira CLI
 brew "jira-cli"
+# Lightweight and flexible command-line JSON processor
+brew "jq"
 # Simple terminal UI for git commands
 brew "lazygit"
 # Ambitious Vim-fork focused on extensibility and agility

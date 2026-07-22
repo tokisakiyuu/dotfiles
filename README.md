@@ -56,6 +56,20 @@ home/                               # chezmoi source root (.chezmoiroot=home)
 
 The repo's convention is **`~` is the source of truth**, so the daily flow runs in two directions. The "pull" half is straight chezmoi-recommended commands; the "push back" half pulls without `apply` so it doesn't interrupt the collection step with per-file overwrite prompts.
 
+### `dotfile` — the daily flow, packaged
+
+Both directions are wrapped by the `dotfile` fish function (`home/dot_config/fish/functions/dotfile.fish`). The raw command sequences in the next two subsections are what it runs under the hood.
+
+| Command | What it does |
+| --- | --- |
+| `dotfile add [path ...] -m 'msg'` | pull source (`--rebase --autostash`, **no apply**), `chezmoi re-add` the given paths (or every modified file when none given), then `git commit -am 'msg'`. Reminds you when the pull brought remote commits (run `dotfile pull`) and when local commits are still unpushed (run `dotfile push`) |
+| `dotfile status` | changed files, git-status style: `chezmoi status` rows plus `>>` rows for files touched by committed-but-unpushed commits |
+| `dotfile diff [path ...]` | with paths: `chezmoi diff --reverse`. Without: an fzf browser over the same list as `dotfile status` — preview shows the reverse diff (your `~` edits as `+`); `>>` rows preview the unpushed commit diff instead (encrypted sources fall back to decrypted current content, since the git diff is ciphertext). Tab multi-selects, Ctrl-D/Ctrl-U scroll the preview, Enter prints absolute paths |
+| `dotfile push` | `chezmoi git -- push` |
+| `dotfile pull` | `chezmoi update` (pull + apply) |
+
+Because Enter prints paths, `diff` and `add` compose: pick files interactively, then commit them in one line — `dotfile add (dotfile diff) -m 'feat(nvim): tune lsp'`.
+
 ### Pull remote changes (source → `~`)
 
 ```fish
@@ -102,6 +116,7 @@ git add -A; git commit; git push
 
 | Command | What it does |
 | --- | --- |
+| `dotfile` | Daily chezmoi driver: `add` / `status` / `diff` / `push` / `pull` — see [Day-to-day](#day-to-day) |
 | `dotfiles-check` | Local lint: shellcheck + `fish -n` + `chezmoi diff` |
 | `brewfile-sync` | `brew bundle dump` into `~/.config/brew/Brewfile`; run after `brew install`/`uninstall` |
 | `ll` | `eza` alias with icons and sorting |

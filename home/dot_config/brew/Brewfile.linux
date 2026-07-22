@@ -4,6 +4,12 @@ brew "bash"
 brew "btop"
 # Incredibly fast JavaScript runtime, bundler, test runner, and package manager
 brew "bun"
+# Powerful, enterprise-ready, open source web server with automatic HTTPS
+# NOTE: kept pinned (`brew pin caddy`) — the binary carries the caddy-dns/cloudflare
+# plugin injected via `caddy add-package github.com/caddy-dns/cloudflare`;
+# a plain upgrade replaces it with a plugin-less binary. After upgrading:
+# re-run add-package, then `sudo systemctl restart caddy`.
+brew "caddy"
 # Manage your dotfiles across multiple diverse machines, securely
 brew "chezmoi"
 # Modern, maintained replacement for ls

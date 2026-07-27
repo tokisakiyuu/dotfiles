@@ -14,7 +14,7 @@
   "language": "chinese",
   "effortLevel": "high",
   "awaySummaryEnabled": false,
-  "tui": "default",
+  "tui": "fullscreen",
   "skipWorkflowUsageWarning": true,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true

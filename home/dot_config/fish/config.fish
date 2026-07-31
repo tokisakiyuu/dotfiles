@@ -58,6 +58,8 @@ set -gx LANG "en_US.UTF-8"
 # zoxide, z command (installed by Homebrew)
 set -gx _ZO_DATA_DIR "$HOME/.local/share/z"
 zoxide init fish | source
+# Alt+Z: pick a dir interactively and insert the path at the cursor
+bind \ez zi-insert
 
 # Command Editor command
 set -gx EDITOR (command -v nvim)

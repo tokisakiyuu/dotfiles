@@ -10,7 +10,6 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "claude-fable-5[1m]",
   "language": "chinese",
   "effortLevel": "high",
   "awaySummaryEnabled": false,

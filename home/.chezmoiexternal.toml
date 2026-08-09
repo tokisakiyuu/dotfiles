@@ -1,8 +1,8 @@
+# archive instead of git-repo: upstream rebases master and force-pushes, which
+# permanently breaks `git pull --ff-only` until the local clone is reset by hand
 [".local/share/tmux/oh-my-tmux"]
-    type = "git-repo"
-    url = "https://github.com/gpakosz/.tmux.git"
+    type = "archive"
+    url = "https://github.com/gpakosz/.tmux/archive/refs/heads/master.tar.gz"
+    exact = true
+    stripComponents = 1
     refreshPeriod = "168h"
-    [".local/share/tmux/oh-my-tmux".clone]
-        args = ["--depth", "1"]
-    [".local/share/tmux/oh-my-tmux".pull]
-        args = ["--ff-only"]

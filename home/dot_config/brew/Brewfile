@@ -26,6 +26,8 @@ brew "git"
 brew "jira-cli"
 # Simple terminal UI for git commands
 brew "lazygit"
+# Postgres C API library
+brew "libpq"
 # Open-source, cross-platform JavaScript runtime environment
 brew "node"
 # MongoDB Shell to connect, configure, query, and work with your MongoDB database
@@ -34,6 +36,8 @@ brew "mongosh"
 brew "neovim"
 # 7-Zip (high compression file archiver) implementation
 brew "p7zip"
+# PDF rendering library (based on the xpdf-3.0 code base)
+brew "poppler"
 # Generic machine emulator and virtualizer
 brew "qemu"
 # Search tool like grep and The Silver Searcher

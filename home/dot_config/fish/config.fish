@@ -42,6 +42,13 @@ set -g fish_greeting ''
 set -gx PNPM_HOME "$HOME/.local/share/pnpm"
 set -gx PATH "$PNPM_HOME:$PATH"
 
+# node@24 is keg-only, so Homebrew never symlinks it — adding its bin by hand is
+# what keeps us pinned to 24 instead of drifting onto the latest `node`. Probing
+# a fixed list beats `brew --prefix` here: this runs on every shell startup.
+for p in /opt/homebrew/opt/node@24/bin /usr/local/opt/node@24/bin /home/linuxbrew/.linuxbrew/opt/node@24/bin
+    test -d $p; and fish_add_path -g $p
+end
+
 # Rust Toolchains — discover host triple at runtime so the same line works on
 # macOS (stable-aarch64-apple-darwin), Linux/musl, Linux/gnu, etc.
 for tc in $HOME/.rustup/toolchains/stable-*/bin

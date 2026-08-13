@@ -21,6 +21,17 @@ function require_brew() {
   fi
 }
 
+function load_node_env() {
+  # node@24 is keg-only, so `brew shellenv` leaves it off PATH — but the
+  # Brewfile's `npm "corepack"` entry shells out to npm and would abort the run.
+  # Seeding the path up front works even on a fresh machine: the directory
+  # appears mid-run once `brew bundle` installs the formula, and PATH is
+  # consulted at each lookup.
+  local prefix
+  prefix="$(brew --prefix)"
+  export PATH="${prefix}/opt/node@24/bin:${PATH}"
+}
+
 function install_packages() {
   # --no-upgrade keeps the run idempotent: already-installed formulae are
   # not touched, so re-running this script is cheap and safe.
@@ -30,6 +41,7 @@ function install_packages() {
 function main() {
   load_brew_env
   require_brew
+  load_node_env
   install_packages
 }
 

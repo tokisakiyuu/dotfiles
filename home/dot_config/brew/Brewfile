@@ -29,9 +29,7 @@ brew "lazygit"
 # Postgres C API library
 brew "libpq"
 # Open-source, cross-platform JavaScript runtime environment
-brew "node"
-# MongoDB Shell to connect, configure, query, and work with your MongoDB database
-brew "mongosh"
+brew "node@24"
 # Ambitious Vim-fork focused on extensibility and agility
 brew "neovim"
 # 7-Zip (high compression file archiver) implementation

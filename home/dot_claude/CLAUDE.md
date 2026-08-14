@@ -40,3 +40,12 @@ gh 命令应该已经就绪了。
 ## 优先使用 Jira CLI
 
 jira 命令应该已经就绪了（https://github.com/ankitpokhrel/jira-cli）。
+
+## tmux target-pane 记号
+
+`tmux@<target>`：`@` 后是 tmux target-pane 语法，如 `tmux@0:2.1`、`tmux@%319`、`tmux@{marked}`。
+
+- 省略 session 时补 `0:`（`tmux@2.1` = `tmux@0:2.1`），别靠 current session 兜底
+- `@` 后原样作 `-t` 参数，别改写、别去掉 `%`
+- 先 `tmux display-message -p -t '<target>' '#{pane_id}'` 确认存在，后续操作用 pane ID
+- 只是指认对象，做什么以我当次的动词为准

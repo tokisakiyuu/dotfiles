@@ -42,6 +42,9 @@ set -g fish_greeting ''
 set -gx PNPM_HOME "$HOME/.local/share/pnpm"
 set -gx PATH "$PNPM_HOME:$PATH"
 
+# nodejs bin
+fish_add_path /home/linuxbrew/.linuxbrew/opt/node@24/bin
+
 # node@24 is keg-only, so Homebrew never symlinks it — adding its bin by hand is
 # what keeps us pinned to 24 instead of drifting onto the latest `node`. Probing
 # a fixed list beats `brew --prefix` here: this runs on every shell startup.

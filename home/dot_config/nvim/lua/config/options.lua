@@ -33,7 +33,13 @@ vim.o.titlestring = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
 -- something in startup occasionally trips that BEFORE g:clipboard is set,
 -- which permanently breaks yanks for the session. unlet + runtime makes
 -- the script re-evaluate with our g:clipboard in place.
-if os.getenv("SSH_TTY") then
+--
+-- Detect SSH via SSH_CONNECTION, not SSH_TTY: tmux's default
+-- `update-environment` list carries SSH_CONNECTION into panes but drops
+-- SSH_TTY, so SSH_TTY is always empty inside tmux. LazyVim keys its own
+-- blanking of `clipboard` off SSH_CONNECTION too - using a different variable
+-- here meant LazyVim disabled the clipboard and this block never re-enabled it.
+if os.getenv("SSH_CONNECTION") then
   local function setup_osc52_clipboard()
     local osc52 = require("vim.ui.clipboard.osc52")
     local function paste()

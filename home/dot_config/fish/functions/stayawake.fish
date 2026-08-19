@@ -4,26 +4,29 @@
 # Usage:  stayawake            # full protection, asks for admin password
 #         stayawake --no-lid   # idle sleep only, no password needed
 #         stayawake --reset    # clear a leftover disablesleep flag and exit
-#
-# Note: a fish function has no pid of its own, so the watchdog and caffeinate are
-# tied to $fish_pid — the shell. Ctrl-C stops the monitor loop, but protection
-# lasts until this shell exits. Use --reset to drop it without closing the shell.
 
 function stayawake --description 'Keep the Mac awake, beep on low battery / overheating'
-    set -g __stayawake_warn 20
-    set -g __stayawake_critical 10
-    set -g __stayawake_clear 25
-    set -g __stayawake_repeat 300
-    set -l poll_seconds 30
-
     if test "$argv[1]" = --reset
         sudo pmset -a disablesleep 0
         __stayawake_log "SleepDisabled = $(pmset -g | awk '/SleepDisabled/{print $2}')"
         return 0
     end
 
+    # caffeinate runs the monitor as its child rather than alongside it, so Ctrl-C
+    # kills the whole chain and releases the assertions. A backgrounded caffeinate
+    # would survive Ctrl-C and then block `exit` as a lingering job. The child shell
+    # also gives the watchdog a real pid to track — a fish function has none.
+    caffeinate -i -m -s fish -c "source "(functions --details stayawake)"; __stayawake_run $argv"
+end
+
+function __stayawake_run
+    set -g __stayawake_warn 20
+    set -g __stayawake_critical 10
+    set -g __stayawake_clear 25
+    set -g __stayawake_repeat 300
     set -g __stayawake_last_battery 0
     set -g __stayawake_last_thermal 0
+    set -l poll_seconds 30
 
     if test "$argv[1]" = --no-lid
         __stayawake_log 'Lid-close sleep: skipped (--no-lid)'
@@ -33,9 +36,6 @@ function stayawake --description 'Keep the Mac awake, beep on low battery / over
         __stayawake_log 'Lid-close sleep: authorization failed, idle sleep still blocked'
     end
 
-    # -i blocks idle sleep, -m disk sleep, -s system sleep (AC only), -w ties its
-    # lifetime to this shell. -d is deliberately omitted: the screen may go dark.
-    caffeinate -i -m -s -w $fish_pid &
     __stayawake_log 'Idle sleep: blocked (screen may still go dark)'
     __stayawake_log "Monitoring, Ctrl-C to stop. Thresholds $__stayawake_warn%/$__stayawake_critical%, polling every "$poll_seconds"s."
 
@@ -81,7 +81,7 @@ end
 
 # Lid close uses a different sleep path than idle sleep and ignores power
 # assertions, so it needs the root-only disablesleep flag. A root watchdog
-# restores it once the shell dies — even on kill -9.
+# restores it once this shell dies — even on kill -9.
 # It always restores 0, never the value read at launch: the flag is persisted to
 # /Library/Preferences/com.apple.PowerManagement.plist, so a power cut — which
 # kills the watchdog too — leaves it set across reboots, and replaying that value

@@ -28,6 +28,8 @@ return {
       },
       keymap = {
         preset = "default", -- no be accepted if press enter
+        -- second trigger for the menu: macOS reserves Ctrl+Space for input-method switching
+        ["<C-j>"] = { "show", "show_documentation", "hide_documentation" },
       },
     },
   },

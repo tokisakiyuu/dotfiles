@@ -49,3 +49,7 @@ jira 命令应该已经就绪了（https://github.com/ankitpokhrel/jira-cli）�
 - `@` 后原样作 `-t` 参数，别改写、别去掉 `%`
 - 先 `tmux display-message -p -t '<target>' '#{pane_id}'` 确认存在，后续操作用 pane ID
 - 只是指认对象，做什么以我当次的动词为准
+
+## 要求的最终文件产物存到 ~/Downloads
+
+用户自己要求得到的最终文件产物放进 ~/Downloads，而不是 scratchpad，默认情况下要按 session 创建一层文件夹去存这个 seesion 内产出的最终文件产物

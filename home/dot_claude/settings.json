@@ -13,8 +13,11 @@
   "language": "chinese",
   "effortLevel": "high",
   "awaySummaryEnabled": false,
+  "autoUpdatesChannel": "stable",
+  "minimumVersion": "2.1.236",
   "tui": "fullscreen",
   "skipWorkflowUsageWarning": true,
+  "preferredNotifChannel": "iterm2",
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true
 }

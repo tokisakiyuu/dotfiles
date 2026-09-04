@@ -19,5 +19,6 @@
   "skipWorkflowUsageWarning": true,
   "preferredNotifChannel": "iterm2",
   "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true
+  "skipAutoPermissionPrompt": true,
+  "crossSessionInbound": "accept"
 }

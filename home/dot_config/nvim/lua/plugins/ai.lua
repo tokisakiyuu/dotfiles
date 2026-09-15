@@ -1,3 +1,8 @@
+-- Disabled
+if true then
+  return {}
+end
+
 return {
   {
     "coder/claudecode.nvim",

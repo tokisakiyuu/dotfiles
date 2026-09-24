@@ -13,3 +13,14 @@ vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
     )
   end,
 })
+
+-- LazyVim's `wrap_spell` autocmd turns on both wrap and spell for text
+-- filetypes. Reclaim its augroup so the wrap half stays and spell is dropped.
+-- https://www.lazyvim.org/configuration/general
+vim.api.nvim_create_autocmd("FileType", {
+  group = vim.api.nvim_create_augroup("lazyvim_wrap_spell", { clear = true }),
+  pattern = { "text", "plaintex", "typst", "gitcommit", "markdown" },
+  callback = function()
+    vim.opt_local.wrap = true
+  end,
+})

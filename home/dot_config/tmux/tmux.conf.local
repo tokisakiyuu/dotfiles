@@ -401,6 +401,9 @@ tmux_conf_urlscan_options="--compact --dedupe"
 
 # -- user customizations -------------------------------------------------------
 
+# Preserve modified Enter keys for Pi.
+set -g extended-keys on
+
 # this is the place to override or undo settings
 
 # increase history size

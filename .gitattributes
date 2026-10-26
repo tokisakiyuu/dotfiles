@@ -1,0 +1,5 @@
+[attr]private filter=git-crypt diff=git-crypt -text
+
+.config/fish/conf.d/env.secret.fish private
+.config/git/config.secret private
+.config/.jira/.config.yml private

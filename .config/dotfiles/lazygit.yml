@@ -1,0 +1,13 @@
+git:
+  # Lazygit otherwise skips hooks for messages beginning with WIP.
+  skipHookPrefix: ''
+  pagers:
+    - colorArg: always
+      pager: 'bash "$HOME/.config/dotfiles/lazygit-diff.sh"'
+customCommands:
+  - key: 'E'
+    context: 'files'
+    command: 'bash "$HOME/.config/dotfiles/check-encryption.sh" --index'
+    description: 'Verify encrypted staged blobs'
+    output: popup
+    outputTitle: 'Encryption verification: raw Git objects'

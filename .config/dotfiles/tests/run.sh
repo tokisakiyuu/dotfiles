@@ -217,6 +217,8 @@ codec normalize "$identity"
 [[ $(fingerprint "$identity") == "$key_stamp" ]]
 printf 'gc1:invalid' > "$test_root/invalid.key"
 bad codec normalize "$test_root/invalid.key"
+[[ $(wc -l < "$test_root/expected-error.out") -eq 1 ]]
+grep -Fq 'Invalid gc1 text key.' "$test_root/expected-error.out"
 cp "$fixture/.gitattributes" "$test_root/attributes-backup"
 grep -vF 'credential' "$test_root/attributes-backup" > "$fixture/.gitattributes"
 bad cli add .gitattributes

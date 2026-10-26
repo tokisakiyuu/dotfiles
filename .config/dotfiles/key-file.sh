@@ -47,7 +47,7 @@ native_from_material() {
 
 native_stream() {
     local kind text
-    kind=$(key_kind "$1")
+    kind=$(key_kind "$1") || return 1
     case "$kind" in
         native) cat "$1" ;;
         base64) text=$(cat "$1"); printf '%s' "$text" | base64_decode ;;
@@ -57,32 +57,43 @@ native_stream() {
 
 compact_key() {
     local complete material reconstructed
-    complete=$(native_stream "$1" | base64_line)
+    complete=$(native_stream "$1" | base64_line) || return 1
     [[ ${#complete} == 200 ]] || key_error 'Unsupported native key length.'
     material=$({
         native_stream "$1" | { dd bs=1 skip=40 count=32 2>/dev/null; cat >/dev/null; }
         native_stream "$1" | { dd bs=1 skip=80 count=64 2>/dev/null; cat >/dev/null; }
-    } | base64_line | tr '/+' '_-')
+    } | base64_line | tr '/+' '_-') || return 1
     [[ ${#material} == 128 && "$material" =~ ^[A-Za-z0-9_-]+$ ]] || key_error 'Invalid key material.'
-    reconstructed=$(native_from_material "$material" | base64_line)
+    reconstructed=$(native_from_material "$material" | base64_line) || return 1
     [[ "$complete" == "$reconstructed" ]] || key_error 'Expected a single default v2 key; unknown formats are refused.'
     printf 'gc1:%s\n' "$material"
 }
 
 key_main() {
-    local action=${1:-} source_file target compact first second replace=1 kind
-    (($#)) || key_error 'Usage: key-file.sh status|normalize|matches|unlock [FILE]'
+    local action=${1:-} source_file target compact first second replace=1 kind header
+    (($#)) || key_error 'Usage: key-file.sh status|normalize|matches|unlock|authenticate [FILE]'
     shift
     if [[ "$action" == matches ]]; then
         [[ $# == 2 ]] || key_error 'matches requires two key-file paths.'
-        first=$(compact_key "$1"); second=$(compact_key "$2")
+        first=$(compact_key "$1") || return 1
+        second=$(compact_key "$2") || return 1
         [[ "$first" == "$second" ]]
         return
     fi
     source_file=${1:-"$key_metadata/git-crypt.key"}
     if (($#)); then shift; fi
-    compact=$(compact_key "$source_file")
+    compact=$(compact_key "$source_file") || return 1
     case "$action" in
+        authenticate)
+            (($# == 0)) || key_error 'authenticate reads a ciphertext blob from stdin.'
+            key_temporary=$(mktemp "${TMPDIR:-/tmp}/dotfiles-key-check.XXXXXX")
+            cat > "$key_temporary"
+            header=$(dd if="$key_temporary" bs=1 count=10 2>/dev/null | od -An -tx1 | tr -d ' \r\n')
+            [[ "$header" == 00474954435259505400 ]] || key_error 'Expected git-crypt ciphertext for key authentication.'
+            if ! command git-crypt smudge --key-file=/dev/fd/3 \
+                3< <(native_from_material "${compact#gc1:}") < "$key_temporary" >/dev/null 2>/dev/null; then
+                key_error 'The supplied key cannot decrypt this repository.'
+            fi ;;
         normalize)
             target=$source_file
             if (($#)); then
@@ -111,7 +122,7 @@ key_main() {
             if (($#)); then [[ $# == 2 && $1 == --destination ]] || key_error 'unlock accepts only --destination DIRECTORY.'; key_destination=$2; fi
             GIT_CONFIG_GLOBAL=/dev/null native_from_material "${compact#gc1:}" |
                 GIT_CONFIG_GLOBAL=/dev/null git --git-dir="$key_destination/.dotfiles.git" --work-tree="$key_destination" -C "$key_destination" crypt unlock - ;;
-        *) key_error 'Usage: key-file.sh status|normalize|matches|unlock [FILE]' ;;
+        *) key_error 'Usage: key-file.sh status|normalize|matches|unlock|authenticate [FILE]' ;;
     esac
 }
 

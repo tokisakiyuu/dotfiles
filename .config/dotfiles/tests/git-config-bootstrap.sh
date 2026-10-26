@@ -91,7 +91,7 @@ bash() {
 restore_dotfiles "$fixture_key" macmini-m4 "$destination" --skip-packages --skip-defaults --keep-shell
 unisolated_git_read
 DRIVER
-run_restore() { /bin/bash "$stage/driver.sh" "$metadata/bootstrap.sh" "$source_root/.dotfiles.git" "$stage/key" "$1" "$stage/package.log"; }
+run_restore() { /bin/bash "$stage/driver.sh" "$metadata/bootstrap.sh" "$source_root/.dotfiles.git" "${2:-$stage/key}" "$1" "$stage/package.log"; }
 run_restore "$stale_target" > "$stage/resume.log" 2>&1
 [[ $(git --git-dir="$stale_target/.dotfiles.git" rev-parse HEAD) == "$(g rev-parse HEAD)" ]]
 cmp -s "$stale_target/.config/git/config.secret" "$stage/plain-config"
@@ -105,6 +105,45 @@ cp "$fresh_target/.config/git/config.secret" "$stage/edited-config"
 run_restore "$fresh_target" > "$stage/repeat.log" 2>&1
 cmp -s "$fresh_target/.config/git/config.secret" "$stage/edited-config"
 echo 'PASS: fresh bootstrap and rerun both work; already decrypted local Git config edits are preserved.'
+
+for variant in invalid different; do
+    retry_target="$stage/$variant key-copy target"
+    make_locked_target "$retry_target"
+    if [[ "$variant" == invalid ]]; then printf 'gc1:invalid\n' > "$stage/previous-key";
+    else printf 'gc1:%0128d\n' 1 > "$stage/previous-key"; fi
+    cp "$stage/previous-key" "$retry_target/.config/dotfiles/git-crypt.key"
+    run_restore "$retry_target" > "$stage/$variant-copy.log" 2>&1
+    cmp -s "$retry_target/.config/dotfiles/git-crypt.key" "$stage/key"
+    cmp -s "$retry_target/.config/git/config.secret" "$stage/plain-config"
+    backups=("$retry_target/.local/state/dotfiles"/key-input-backup.*)
+    [[ ${#backups[@]} == 1 ]]
+    cmp -s "${backups[0]}" "$stage/previous-key"
+done
+echo 'PASS: a retry accepts the newly supplied key and backs up invalid or different key copies left by incomplete initialization.'
+cp "$fresh_target/.config/dotfiles/git-crypt.key" "$stage/active-key-before"
+for variant in invalid different; do
+    if [[ "$variant" == invalid ]]; then printf 'gc1:invalid\n' > "$stage/supplied-key";
+    else printf 'gc1:%0128d\n' 1 > "$stage/supplied-key"; fi
+    result=0
+    run_restore "$fresh_target" "$stage/supplied-key" > "$stage/$variant-input.log" 2>&1 || result=$?
+    [[ "$result" != 0 ]]
+    cmp -s "$fresh_target/.config/dotfiles/git-crypt.key" "$stage/active-key-before"
+done
+grep -Fq 'The supplied key is invalid.' "$stage/invalid-input.log"
+if grep -Fq 'differs from the active' "$stage/invalid-input.log"; then echo 'Malformed input was reported as a key mismatch.' >&2; exit 1; fi
+grep -Fq 'differs from the active repository key' "$stage/different-input.log"
+echo 'PASS: malformed input and actual active-key conflicts are distinguished, and a working key is preserved.'
+
+wrong_target="$stage/wrong key target"
+make_locked_target "$wrong_target"
+printf 'gc1:%0128d\n' 1 > "$stage/wrong-key"
+result=0
+run_restore "$wrong_target" "$stage/wrong-key" > "$stage/wrong-key.log" 2>&1 || result=$?
+[[ "$result" != 0 && ! -f "$wrong_target/.dotfiles.git/git-crypt/keys/default" ]]
+grep -Fq 'The supplied key cannot decrypt this repository.' "$stage/wrong-key.log"
+run_restore "$wrong_target" > "$stage/wrong-key-retry.log" 2>&1
+cmp -s "$wrong_target/.config/git/config.secret" "$stage/plain-config"
+echo 'PASS: a well-formed wrong key is rejected before activation; retrying with the correct key replaces its leftover input copy and succeeds.'
 
 failed_target="$stage/failed target"
 make_locked_target "$failed_target"

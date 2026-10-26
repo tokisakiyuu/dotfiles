@@ -46,7 +46,7 @@ secure_private_permissions() (
 
 prepare_git_crypt() (
     set -euo pipefail
-    local prepare_destination=$1 prepare_identity=$2 prepare_metadata prepare_secret prepare_pending prepare_header prepare_result
+    local prepare_destination=$1 prepare_identity=$2 prepare_metadata prepare_secret prepare_pending prepare_header prepare_result prepare_probe='' prepare_path
     prepare_metadata="$prepare_destination/.config/dotfiles"
     prepare_secret="$prepare_destination/.config/git/config.secret"
     prepare_pending="$prepare_destination/.local/state/dotfiles/git-config.pending"
@@ -79,6 +79,12 @@ prepare_git_crypt() (
     if [[ -x /opt/homebrew/bin/brew ]]; then eval "$(/opt/homebrew/bin/brew shellenv bash)"; else eval "$(/usr/local/bin/brew shellenv bash)"; fi
     brew install git-crypt
     restore_git_config
+    while IFS= read -r -d '' prepare_path; do
+        if git_dotfiles cat-file -e ":$prepare_path" 2>/dev/null; then prepare_probe=$prepare_path; break; fi
+    done < <(private_file_list "$prepare_metadata/private-files")
+    if [[ -n "$prepare_probe" ]]; then
+        git_dotfiles cat-file blob ":$prepare_probe" | bash "$prepare_metadata/key-file.sh" authenticate "$prepare_identity"
+    fi
     ensure_unlocked "$prepare_destination" "$prepare_identity"
     secure_private_permissions "$prepare_destination"
 )

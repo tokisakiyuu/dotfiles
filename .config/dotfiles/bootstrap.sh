@@ -93,22 +93,32 @@ restore_dotfiles() {
         git --git-dir="$repo" --work-tree="$destination" -C "$destination" merge --ff-only refs/remotes/origin/main
     fi
     [[ ! -L "$identity" ]] || { echo 'Refusing to replace a symlink at the key path.' >&2; return 1; }
-    local key_tool="${metadata}/key-file.sh"
-    if [[ -e "$identity" ]]; then
-        bash "$key_tool" matches "$identity_source" "$identity" || {
-            echo "A different key already exists at $identity; leaving it untouched." >&2; return 1;
+    local key_tool="${metadata}/key-file.sh" active_key="$repo/git-crypt/keys/default" key_backup
+    bash "$key_tool" status "$identity_source" >/dev/null || {
+        echo 'The supplied key is invalid. Enter the complete gc1 text key or a readable key-file path; existing files were preserved.' >&2
+        return 1
+    }
+    if [[ -f "$active_key" ]]; then
+        bash "$key_tool" status "$active_key" >/dev/null || { echo 'The active repository key is invalid; existing files were preserved.' >&2; return 1; }
+        bash "$key_tool" matches "$identity_source" "$active_key" || {
+            echo 'The supplied key differs from the active repository key; existing files were preserved.' >&2; return 1;
         }
-        bash "$key_tool" normalize "$identity"
-    else
-        bootstrap_install_temp=$(mktemp -d "${metadata}/.git-crypt.key.XXXXXX")
-        bash "$key_tool" normalize "$identity_source" --output "${bootstrap_install_temp}/key"
-        mv -n "${bootstrap_install_temp}/key" "$identity"
-        bash "$key_tool" matches "$identity_source" "$identity" || {
-            echo 'A different key was installed concurrently; leaving it untouched.' >&2; return 1;
-        }
-        rm -rf -- "$bootstrap_install_temp"
-        bootstrap_install_temp=''
     fi
+    bootstrap_install_temp=$(mktemp -d "${metadata}/.git-crypt.key.XXXXXX")
+    bash "$key_tool" normalize "$identity_source" --output "${bootstrap_install_temp}/key"
+    if ! cmp -s "${bootstrap_install_temp}/key" "$identity"; then
+        if [[ -e "$identity" ]]; then
+            [[ -f "$identity" ]] || { echo 'The local key path is not a regular file.' >&2; return 1; }
+            mkdir -p "$destination/.local/state/dotfiles"
+            key_backup=$(mktemp "$destination/.local/state/dotfiles/key-input-backup.XXXXXX")
+            cp "$identity" "$key_backup"
+            chmod 600 "$key_backup"
+            printf 'Previous local key copy preserved at: %s\n' "$key_backup"
+        fi
+        mv -f "${bootstrap_install_temp}/key" "$identity"
+    fi
+    rm -rf -- "$bootstrap_install_temp"
+    bootstrap_install_temp=''
     chmod 600 "$identity"
     # Reconnect child installers/editors to the terminal when invoked via curl | bash.
     bash "${metadata}/setup.sh" "$machine" "$@" <&3

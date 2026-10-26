@@ -61,21 +61,18 @@ setup_dotfiles() {
     chmod +x "${root}/hooks/pre-commit" "${root}/hooks/pre-push"
     if ((configure_only)); then exit 0; fi
 
-    bash "${root}/install/brew.sh"
-    if [[ -x /opt/homebrew/bin/brew ]]; then eval "$(/opt/homebrew/bin/brew shellenv bash)"; else eval "$(/usr/local/bin/brew shellenv bash)"; fi
-    brew install git-crypt
-    if ((change_shell)); then
-        echo 'Installing fish and the tools required by its shared configuration.'
-        brew install fish starship zoxide neovim
-    fi
     identity="${root}/git-crypt.key"
     if [[ ! -r "$identity" ]]; then
         echo "Restore the git-crypt key to ${identity} and rerun setup." >&2
         exit 1
     fi
     chmod 600 "$identity"
-    ensure_unlocked "$destination" "$identity"
-    secure_private_permissions "$destination"
+    prepare_git_crypt "$destination" "$identity"
+    if [[ -x /opt/homebrew/bin/brew ]]; then eval "$(/opt/homebrew/bin/brew shellenv bash)"; else eval "$(/usr/local/bin/brew shellenv bash)"; fi
+    if ((change_shell)); then
+        echo 'Installing fish and the tools required by its shared configuration.'
+        brew install fish starship zoxide neovim
+    fi
     if ((install_packages)); then
         snapshot="${destination}/.config/brew/Brewfile.${machine}"
         if [[ ! -f "$snapshot" ]]; then

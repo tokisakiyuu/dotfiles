@@ -44,6 +44,45 @@ secure_private_permissions() (
     done < "$permissions_stage/paths"
 )
 
+prepare_git_crypt() (
+    set -euo pipefail
+    local prepare_destination=$1 prepare_identity=$2 prepare_metadata prepare_secret prepare_pending prepare_header prepare_result
+    prepare_metadata="$prepare_destination/.config/dotfiles"
+    prepare_secret="$prepare_destination/.config/git/config.secret"
+    prepare_pending="$prepare_destination/.local/state/dotfiles/git-config.pending"
+    [[ ! -L "$prepare_secret" && ! -L "$prepare_pending" ]] || { echo 'Refusing a symlink in Git configuration recovery.' >&2; exit 1; }
+    [[ ! -e "$prepare_pending" || -f "$prepare_pending" ]] || { echo 'Git configuration recovery requires a regular pending file.' >&2; exit 1; }
+    mkdir -p "$(dirname "$prepare_pending")"
+    restore_git_config() {
+        [[ -f "$prepare_pending" ]] || return 0
+        if [[ -e "$prepare_secret" ]]; then
+            cmp -s "$prepare_pending" "$prepare_secret" || { echo "Git configuration recovery stopped; both files were preserved: $prepare_pending" >&2; return 1; }
+            rm -f "$prepare_pending"
+        else
+            mv "$prepare_pending" "$prepare_secret"
+        fi
+    }
+    trap 'prepare_result=$?; trap - EXIT; restore_git_config || prepare_result=1; exit "$prepare_result"' EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    # Recover a previous interrupted installation before suspending the include.
+    restore_git_config
+    if [[ -f "$prepare_secret" ]]; then
+        prepare_header=$(dd if="$prepare_secret" bs=1 count=10 2>/dev/null | od -An -tx1 | tr -d ' \r\n')
+        if [[ "$prepare_header" == 00474954435259505400 ]]; then
+            # Missing Git include files are harmless; ciphertext is invalid Git config.
+            # Restore this tracked file before git-crypt checks worktree cleanliness.
+            mv "$prepare_secret" "$prepare_pending"
+        fi
+    fi
+    bash "$prepare_metadata/install/brew.sh"
+    if [[ -x /opt/homebrew/bin/brew ]]; then eval "$(/opt/homebrew/bin/brew shellenv bash)"; else eval "$(/usr/local/bin/brew shellenv bash)"; fi
+    brew install git-crypt
+    restore_git_config
+    ensure_unlocked "$prepare_destination" "$prepare_identity"
+    secure_private_permissions "$prepare_destination"
+)
+
 ensure_unlocked() (
     set -euo pipefail
     local unlock_destination=$1 unlock_identity=$2 private_file unlock_stage=''

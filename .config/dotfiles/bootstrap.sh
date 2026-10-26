@@ -57,6 +57,7 @@ restore_dotfiles() {
     local repo="${destination}/.dotfiles.git"
     local metadata="${destination}/.config/dotfiles"
     local identity="${metadata}/git-crypt.key"
+    local reused=0 git_config_header=''
     shift 3
     [[ -f "$identity_source" ]] || { echo "Key file not found: $identity_source" >&2; return 1; }
     [[ "$machine" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { echo 'Invalid machine name.' >&2; return 2; }
@@ -64,6 +65,7 @@ restore_dotfiles() {
     mkdir -p "$destination"
 
     if [[ -e "$repo" ]]; then
+        reused=1
         [[ $(git --git-dir="$repo" rev-parse --is-bare-repository) == true ]] || {
             echo "Not a bare repository: $repo" >&2; return 1;
         }
@@ -82,6 +84,14 @@ restore_dotfiles() {
 
     # Let Git refuse collisions; never force a checkout over an existing home.
     git --git-dir="$repo" --work-tree="$destination" -C "$destination" checkout
+    if [[ -f "$destination/.config/git/config.secret" ]]; then
+        git_config_header=$(dd if="$destination/.config/git/config.secret" bs=1 count=10 2>/dev/null | od -An -tx1 | tr -d ' \r\n')
+    fi
+    if ((reused)) && { [[ ! -f "$repo/git-crypt/keys/default" ]] || [[ "$git_config_header" == 00474954435259505400 ]] || [[ -f "$destination/.local/state/dotfiles/git-config.pending" ]]; }; then
+        echo 'Resuming incomplete setup; checking for updated bootstrap files.'
+        git --git-dir="$repo" fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
+        git --git-dir="$repo" --work-tree="$destination" -C "$destination" merge --ff-only refs/remotes/origin/main
+    fi
     [[ ! -L "$identity" ]] || { echo 'Refusing to replace a symlink at the key path.' >&2; return 1; }
     local key_tool="${metadata}/key-file.sh"
     if [[ -e "$identity" ]]; then

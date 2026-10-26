@@ -8,6 +8,7 @@ umask 077
 test_metadata=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 live=$(cd "$test_metadata/../.." && pwd -P)
 bash "$test_metadata/tests/entrypoints.sh"
+bash "$test_metadata/tests/git-config-bootstrap.sh"
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-bash-test.XXXXXX")
 trap 'rm -rf -- "$test_root"' EXIT
 test_root=$(cd "$test_root" && pwd -P)
@@ -267,6 +268,8 @@ git() {
     if [[ $1 == clone ]]; then
         command git clone --bare -- "$source_repo" "$5"
         command git --git-dir="$5" config --local remote.origin.url "$DOTFILES_REPOSITORY_URL"
+    elif [[ ${2:-} == fetch ]]; then
+        command git "$1" fetch --no-tags "$source_repo" '+refs/heads/main:refs/remotes/origin/main'
     else command git "$@"; fi
 }
 bash() {

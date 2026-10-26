@@ -148,6 +148,8 @@ pbcopy < ~/.config/dotfiles/git-crypt.key
 不要直接把文本文件传给 `git crypt unlock`，使用 `dotfile key unlock` 或 setup。
 旧二进制和完整 Base64 备份仍可导入，setup 会无损规范化为文本。
 `dotfile key normalize` 可手动进行同样的转换；重复执行不改写相同内容。
+文本输入两端的空白会被移除；正文必须完整。格式错误仅报告长度和非法字符
+数量，不显示密钥内容。
 编码不会轮换密钥，也不是额外加密。当前 96 字节随机材料直接用 Base64
 表示需要 128 个字符；`gc1:` 是 4 字符格式标识。没有截断或降低密钥强度。
 

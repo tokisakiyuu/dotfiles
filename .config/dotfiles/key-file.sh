@@ -13,8 +13,16 @@ key_error() { echo "Key operation failed: $*" >&2; exit 1; }
 base64_decode() { if [[ $(uname -s) == Darwin ]]; then base64 -D; else base64 -d; fi; }
 base64_line() { base64 | tr -d '\r\n'; }
 
+key_text() {
+    local text LC_ALL=C
+    text=$(cat "$1") || return 1
+    text="${text#"${text%%[![:space:]]*}"}"
+    text="${text%"${text##*[![:space:]]}"}"
+    printf '%s' "$text"
+}
+
 key_kind() {
-    local file=$1 size header text
+    local file=$1 size header text invalid whitespace controls LC_ALL=C
     [[ -r "$file" ]] || key_error 'Key file is not readable.'
     size=$(wc -c < "$file"); size=${size//[[:space:]]/}
     ((size > 0 && size <= 4096)) || key_error 'Invalid key file size.'
@@ -22,13 +30,18 @@ key_kind() {
     if [[ "$header" == AEdJVENSWVBUS0VZ ]]; then
         echo native
     else
-        text=$(cat "$file")
+        text=$(key_text "$file") || return 1
         if [[ "$text" == gc1:* ]]; then
             text=${text#gc1:}
-            [[ ${#text} == 128 && "$text" =~ ^[A-Za-z0-9_-]+$ ]] || key_error 'Invalid gc1 text key.'
+            if [[ ${#text} != 128 || ! "$text" =~ ^[A-Za-z0-9_-]+$ ]]; then
+                invalid=${text//[A-Za-z0-9_-]/}
+                whitespace=${text//[![:space:]]/}
+                controls=${text//[![:cntrl:]]/}
+                key_error "Invalid gc1 text key: expected 128 payload characters (132 total); received ${#text}; invalid characters: ${#invalid}; whitespace: ${#whitespace}; control characters: ${#controls}. Contents hidden."
+            fi
             echo compact
         else
-            [[ ${#text} == 200 && "$text" =~ ^[A-Za-z0-9+/]+==$ ]] || key_error 'Invalid legacy Base64 key.'
+            [[ ${#text} == 200 && "$text" =~ ^[A-Za-z0-9+/]+==$ ]] || key_error "Unrecognized key encoding: ${#text} characters. Expected gc1 text (132 total) or a supported key file. Contents hidden."
             echo base64
         fi
     fi
@@ -50,8 +63,8 @@ native_stream() {
     kind=$(key_kind "$1") || return 1
     case "$kind" in
         native) cat "$1" ;;
-        base64) text=$(cat "$1"); printf '%s' "$text" | base64_decode ;;
-        compact) text=$(cat "$1"); native_from_material "${text#gc1:}" ;;
+        base64) text=$(key_text "$1") || return 1; printf '%s' "$text" | base64_decode ;;
+        compact) text=$(key_text "$1") || return 1; native_from_material "${text#gc1:}" ;;
     esac
 }
 

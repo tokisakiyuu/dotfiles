@@ -68,7 +68,13 @@ while IFS= read -r filename; do
 done < "$fixture/.config/dotfiles/private-files"
 cli log > "$test_root/empty-log.out"
 grep -Fxq 'No commits yet.' "$test_root/empty-log.out"
-cli commit 'disposable initial fixture' > "$test_root/commit.out"
+cli commit 'disposable initial fixture' > "$test_root/commit.out" 2>&1
+if grep -Eq '^\[ENCRYPTED\]|^PASS:' "$test_root/commit.out"; then
+    echo 'A successful commit printed automatic encryption reports.' >&2; exit 1
+fi
+cli verify > "$test_root/verify.out"
+grep -Fq '[ENCRYPTED]' "$test_root/verify.out"
+grep -Fq 'PASS:' "$test_root/verify.out"
 echo 'PASS: Bash-only CLI verifies and commits a disposable encrypted baseline.'
 
 bad cli git status
@@ -103,7 +109,8 @@ mkdir -p "$fixture/.config/new-app"
 public=.config/new-app/public.conf
 printf 'public fixture\n' > "$fixture/$public"
 ignore_stamp=$(fingerprint "$fixture/.gitignore")
-cli add "$public" > "$test_root/add.out"
+cli add "$public" > "$test_root/add.out" 2>&1
+[[ ! -s "$test_root/add.out" ]]
 g ls-files --error-unmatch -- "$public" >/dev/null
 [[ $(fingerprint "$fixture/.gitignore") == "$ignore_stamp" ]]
 private='.config/new-app/credential [1] ü.conf'
@@ -188,6 +195,7 @@ bad codec normalize "$test_root/invalid.key"
 cp "$fixture/.gitattributes" "$test_root/attributes-backup"
 grep -vF 'credential' "$test_root/attributes-backup" > "$fixture/.gitattributes"
 bad cli add .gitattributes
+grep -Fq '[BLOCKED]' "$test_root/expected-error.out"
 cp "$test_root/attributes-backup" "$fixture/.gitattributes"
 cli add .gitattributes > "$test_root/restore-attributes.out"
 echo 'PASS: legacy key imports remain compatible; normalization is idempotent; malformed keys and missing private declarations are refused.'
@@ -197,6 +205,7 @@ blob=$(printf 'plaintext fixture' | g hash-object -w --stdin)
 GIT_INDEX_FILE="$test_root/bad-index" g update-index --cacheinfo "100644,$blob,$private"
 bad env GIT_INDEX_FILE="$test_root/bad-index" GIT_DIR="$fixture/.dotfiles.git" GIT_WORK_TREE="$fixture" /bin/bash "$fixture/.config/dotfiles/check-encryption.sh" --index
 bad env GIT_INDEX_FILE="$test_root/bad-index" GIT_DIR="$fixture/.dotfiles.git" GIT_WORK_TREE="$fixture" /bin/bash "$fixture/.config/dotfiles/hooks/pre-commit"
+grep -Fq '[BLOCKED]' "$test_root/expected-error.out"
 forged_blob=$(printf '\000GITCRYPT\000this is still a plaintext fixture' | g hash-object -w --stdin)
 GIT_INDEX_FILE="$test_root/bad-index" g update-index --cacheinfo "100644,$forged_blob,$private"
 bad env GIT_INDEX_FILE="$test_root/bad-index" GIT_DIR="$fixture/.dotfiles.git" GIT_WORK_TREE="$fixture" /bin/bash "$fixture/.config/dotfiles/check-encryption.sh" --index

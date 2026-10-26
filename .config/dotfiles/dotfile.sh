@@ -145,7 +145,7 @@ stage_files() {
     else
         git_dotfiles add --renormalize -- .
     fi
-    bash "$metadata/check-encryption.sh" --index
+    bash "$metadata/check-encryption.sh" --index --quiet
 }
 
 encrypt_files() {
@@ -228,7 +228,7 @@ case "$command_name" in
     commit)
         [[ $# == 1 && -n ${1//[[:space:]]/} ]] || fail "Usage: dotfile commit 'MESSAGE'"
         require_unlocked
-        bash "$metadata/check-encryption.sh" --index
+        bash "$metadata/check-encryption.sh" --index --quiet
         git_dotfiles commit -m "$1" ;;
     log)
         limit=10

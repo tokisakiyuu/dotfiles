@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Native startup test: scripts/flags that print config do not parse custom YAML.
 set -euo pipefail
+[[ -n ${BASH_SOURCE[0]:-} ]] || { echo 'This script requires a file path; run it with bash /path/to/script.' >&2; exit 2; }
 umask 077
 metadata=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 [[ -t 0 ]] || { echo 'Run this interactive UI check in a terminal.' >&2; exit 2; }

@@ -2,6 +2,7 @@
 # shellcheck source-path=SCRIPTDIR
 # shellcheck disable=SC2031 # Fixture setup deliberately runs in an isolated subshell.
 set -euo pipefail
+[[ -n ${BASH_SOURCE[0]:-} ]] || { echo 'This script requires a file path; run it with bash /path/to/script.' >&2; exit 2; }
 trap 'printf "Rotation fixture failed at line %s (callers: %s)\n" "$LINENO" "${BASH_LINENO[*]}" >&2' ERR
 umask 077
 metadata=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)

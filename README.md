@@ -250,6 +250,8 @@ dotfile key rotate --cancel
 curl -fsSL https://raw.githubusercontent.com/tokisakiyuu/dotfiles/main/.config/dotfiles/bootstrap.sh | bash
 ```
 
+`setup.sh` 和日常辅助脚本依赖配套文件，应从已安装的文件路径执行。
+
 入口无需密钥命令参数。交互内容包括：
 
 - 仓库地址固定为 `https://github.com/tokisakiyuu/dotfiles.git`，不接受参数、
@@ -277,8 +279,6 @@ pbcopy < "$HOME/.config/dotfiles/git-crypt.key"
 不安装完整软件清单时仍需 git-crypt；选择 fish 还会安装其共享配置所需工具。
 初始化结束自动执行加密核验，不必再手动运行 verify。
 
-上面的发布地址是占位符，需替换为实际脚本地址。先完成首次提交、迁移固定
-远程并发布脚本，再在其他机器上使用远程恢复入口。
 脚本本身不包含密钥，可以单独公开托管；私有配置仓库仍需 Git 访问权限。
 
 ## 重复执行与失败重试

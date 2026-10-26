@@ -4,6 +4,7 @@
 # ● working, ◉ needs input, ○ idle; unknown states and ordinary shells stay hidden.
 # UI heuristics informed by https://github.com/snirt/agenmux.
 
+[[ -n ${BASH_SOURCE[0]:-} ]] || { echo 'This script requires a file path; run it with bash /path/to/script.' >&2; exit 2; }
 shopt -s nocasematch
 
 agent_for_bin() {

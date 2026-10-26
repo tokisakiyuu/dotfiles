@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck source-path=SCRIPTDIR
 set -euo pipefail
+[[ -n ${BASH_SOURCE[0]:-} ]] || { echo 'This script requires a file path; run it with bash /path/to/script.' >&2; exit 2; }
 umask 077
 # The included private Git config is ciphertext until the repository is unlocked.
 export GIT_CONFIG_GLOBAL=/dev/null

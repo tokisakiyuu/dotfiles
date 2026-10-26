@@ -36,6 +36,6 @@ function main() {
   opt_out_of_analytics
 }
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+if [[ "${BASH_SOURCE[0]:-$0}" == "${0}" ]]; then
   main
 fi

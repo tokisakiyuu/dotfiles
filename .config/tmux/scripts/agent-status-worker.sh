@@ -1,8 +1,10 @@
 #!/bin/bash
+# shellcheck source-path=SCRIPTDIR
 # One worker per tmux server. Detect every ~2s; animate cached working states
 # every 100ms. No agent hooks, external service, or disk cache. Bash 3.2+.
 
-worker_dir=$(cd -- "${BASH_SOURCE[0]%/*}" && pwd) || exit 1
+[[ -n ${BASH_SOURCE[0]:-} ]] || { echo 'This script requires a file path; run it with bash /path/to/script.' >&2; exit 2; }
+worker_dir=$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd) || exit 1
 worker_script=$worker_dir/agent-status-worker.sh
 animation_frames=('+' 'x' '*')
 

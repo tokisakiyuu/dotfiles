@@ -2,10 +2,12 @@
 # shellcheck source-path=SCRIPTDIR
 # shellcheck disable=SC2031 # Fixture setup deliberately changes variables only in subshells.
 set -euo pipefail
+[[ -n ${BASH_SOURCE[0]:-} ]] || { echo 'This script requires a file path; run it with bash /path/to/script.' >&2; exit 2; }
 trap 'printf "Fixture failed at line %s\n" "$LINENO" >&2' ERR
 umask 077
 test_metadata=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 live=$(cd "$test_metadata/../.." && pwd -P)
+bash "$test_metadata/tests/entrypoints.sh"
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-bash-test.XXXXXX")
 trap 'rm -rf -- "$test_root"' EXIT
 test_root=$(cd "$test_root" && pwd -P)

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set +x
 set -euo pipefail
+[[ -n ${BASH_SOURCE[0]:-} ]] || { echo 'This script requires a file path; run it with bash /path/to/script.' >&2; exit 2; }
 umask 077
 
 key_metadata=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)

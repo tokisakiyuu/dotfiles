@@ -9,6 +9,7 @@ test_metadata=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 live=$(cd "$test_metadata/../.." && pwd -P)
 bash "$test_metadata/tests/entrypoints.sh"
 bash "$test_metadata/tests/git-config-bootstrap.sh"
+bash "$test_metadata/tests/brew-node.sh"
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-bash-test.XXXXXX")
 trap 'rm -rf -- "$test_root"' EXIT
 test_root=$(cd "$test_root" && pwd -P)

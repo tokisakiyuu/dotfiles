@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 
+install_brewfile() (
+    set -euo pipefail
+    local snapshot=$1 brew_prefix
+    [[ -r "$snapshot" ]] || { printf 'Cannot read Brewfile: %s\n' "$snapshot" >&2; return 1; }
+    brew_prefix=$(brew --prefix)
+    # Bundle locates npm using the original PATH, but Homebrew filters the PATH
+    # used to execute it. Set both without changing the dump-managed Brewfile.
+    export PATH="${brew_prefix}/opt/node@24/bin:${PATH}"
+    {
+        printf '%s\n' 'ENV["PATH"] = "#{HOMEBREW_PREFIX}/opt/node@24/bin:#{ENV.fetch("PATH")}"'
+        cat "$snapshot"
+    } | brew bundle install --verbose --no-upgrade --file=-
+)
+
 write_machine() {
     local machine=$1 file=$2 temporary
     if [[ -f "$file" && $(cat "$file") == "$machine" ]]; then return 0; fi

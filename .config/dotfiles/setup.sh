@@ -97,9 +97,7 @@ setup_dotfiles() {
             mv "$draft" "$snapshot"
             git_dotfiles add --intent-to-add -- "$snapshot"
         fi
-        brew_prefix=$(brew --prefix)
-        export PATH="${brew_prefix}/opt/node@24/bin:${PATH}"
-        brew bundle install --no-upgrade --file="$snapshot"
+        install_brewfile "$snapshot"
     fi
 
     tmux_dir="${destination}/.local/share/tmux/oh-my-tmux"

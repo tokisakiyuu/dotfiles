@@ -8,6 +8,7 @@ export GIT_CONFIG_GLOBAL=/dev/null
 
 
 setup_dotfiles() {
+    local -x HOMEBREW_NO_ASK=1
     [[ $(uname -s) == Darwin ]] || { echo 'This repository supports macOS only.' >&2; exit 1; }
     local destination=$1
     shift

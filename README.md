@@ -281,6 +281,8 @@ pbcopy < "$HOME/.config/dotfiles/git-crypt.key"
 首次遇到新机器名时，会以已有 Brewfile 为模板打开 vi，让你在安装前编辑。
 有多份模板时先选择一份；新清单会标为 intent-to-add，便于之后提交。
 不安装完整软件清单时仍需 git-crypt；选择 fish 还会安装其共享配置所需工具。
+bootstrap/setup 安装期间为 Homebrew 设置 `HOMEBREW_NO_ASK=1`，省去重复的
+软件安装确认；该设置仅在初始化过程内生效，管理员密码等独立验证仍需交互。
 初始化结束自动执行加密核验，不必再手动运行 verify。
 
 脚本本身不包含密钥，可以单独公开托管；私有配置仓库仍需 Git 访问权限。

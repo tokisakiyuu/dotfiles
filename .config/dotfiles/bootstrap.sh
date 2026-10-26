@@ -125,6 +125,7 @@ restore_dotfiles() {
 }
 
 main() {
+    local -x HOMEBREW_NO_ASK=1
     case "${1:-}" in
         -h|--help)
             echo 'Usage: bash bootstrap.sh'

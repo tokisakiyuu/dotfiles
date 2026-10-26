@@ -117,7 +117,7 @@ cat > "$test_root/bootstrap-bin/xcode-select" <<'CLT'
 #!/bin/bash
 case "$1" in
     -p) exit 1 ;;
-    --install) touch "$DOTFILES_TEST_CLT_MARKER" ;;
+    --install) [[ ${HOMEBREW_NO_ASK:-} == 1 ]] || exit 99; touch "$DOTFILES_TEST_CLT_MARKER" ;;
     *) exit 99 ;;
 esac
 CLT
@@ -330,7 +330,11 @@ set -euo pipefail
 fixture=$1
 export DOTFILES_TEST_STATE=$2
 source "$fixture/.config/dotfiles/setup.sh"
-brew() { printf 'brew %s\n' "$*" >> "$DOTFILES_TEST_STATE/log"; if [[ ${1:-} == --prefix ]]; then echo /opt/homebrew; fi; }
+brew() {
+    command /bin/bash -c '[[ ${HOMEBREW_NO_ASK:-} == 1 ]]' || return 99
+    printf 'brew %s\n' "$*" >> "$DOTFILES_TEST_STATE/log"
+    if [[ ${1:-} == --prefix ]]; then echo /opt/homebrew; fi
+}
 bash() { case "$1" in */install/brew.sh) return 0 ;; *) command /bin/bash "$@" ;; esac; }
 curl() { echo download >> "$DOTFILES_TEST_STATE/log"; if [[ -f "$DOTFILES_TEST_STATE/fail-download" ]]; then echo broken; return 22; fi; cat "$DOTFILES_TEST_STATE/archive.tgz"; }
 defaults() { if [[ $1 == read ]]; then cat "$DOTFILES_TEST_STATE/finder"; else echo 1 > "$DOTFILES_TEST_STATE/finder"; echo defaults-write >> "$DOTFILES_TEST_STATE/log"; fi; }
@@ -340,7 +344,9 @@ sudo() { [[ $1 == tee && $2 == -a && $3 == /etc/shells ]]; command tee -a "$DOTF
 dscl() { printf 'UserShell: %s\n' "$(cat "$DOTFILES_TEST_STATE/shell")"; }
 chsh() { echo "$2" > "$DOTFILES_TEST_STATE/shell"; echo chsh >> "$DOTFILES_TEST_STATE/log"; }
 export -f defaults osascript
+export HOMEBREW_NO_ASK=outside-setup
 setup_dotfiles "$fixture" macmini-m4
+[[ "$HOMEBREW_NO_ASK" == outside-setup ]]
 SETUP
 bad /bin/bash "$test_root/full-setup.sh" "$restored" "$state"
 [[ $(cat "$tmux/keep-me") == preserved ]]

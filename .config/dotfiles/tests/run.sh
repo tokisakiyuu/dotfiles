@@ -105,6 +105,28 @@ echo 'PASS: Git forwarding/flags are rejected; local key, repository metadata an
 )
 echo 'PASS: empty interactive key input stops before cloning or creating key files.'
 
+/bin/bash "$live/.config/dotfiles/bootstrap.sh" --help > "$test_root/bootstrap-file-help.out"
+cat "$live/.config/dotfiles/bootstrap.sh" | /bin/bash -s -- --help > "$test_root/bootstrap-stdin-help.out"
+cmp -s "$test_root/bootstrap-file-help.out" "$test_root/bootstrap-stdin-help.out"
+grep -Fq 'Usage: bash bootstrap.sh' "$test_root/bootstrap-stdin-help.out"
+mkdir "$test_root/bootstrap-bin"
+cat > "$test_root/bootstrap-bin/xcode-select" <<'CLT'
+#!/bin/bash
+case "$1" in
+    -p) exit 1 ;;
+    --install) touch "$DOTFILES_TEST_CLT_MARKER" ;;
+    *) exit 99 ;;
+esac
+CLT
+chmod 700 "$test_root/bootstrap-bin/xcode-select"
+export DOTFILES_TEST_CLT_MARKER="$test_root/clt-requested"
+if cat "$live/.config/dotfiles/bootstrap.sh" | PATH="$test_root/bootstrap-bin:$PATH" /bin/bash > "$test_root/bootstrap-stdin.out" 2>&1; then
+    echo 'Bootstrap should stop until Command Line Tools are installed.' >&2; exit 1
+fi
+[[ -f "$DOTFILES_TEST_CLT_MARKER" ]]
+grep -Fq 'Finish installing Command Line Tools' "$test_root/bootstrap-stdin.out"
+echo 'PASS: file and piped bootstrap entry points work; the real no-argument pipeline reaches the mocked CLT check without changing this machine.'
+
 mkdir -p "$fixture/.config/new-app"
 public=.config/new-app/public.conf
 printf 'public fixture\n' > "$fixture/$public"

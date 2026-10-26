@@ -135,4 +135,4 @@ main() {
     restore_dotfiles "$identity_source" "$machine" "$HOME" "$@"
 }
 
-if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then main "$@"; fi
+if [[ "${BASH_SOURCE[0]:-$0}" == "$0" ]]; then main "$@"; fi

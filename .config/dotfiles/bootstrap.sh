@@ -31,7 +31,7 @@ ask_yes() {
 }
 
 read_key() {
-    printf 'Git-crypt key: paste gc1 text (or legacy Base64), or enter a key-file path (hidden): ' >&3
+    printf 'git-crypt gc1 text key: ' >&3
     IFS= read -r -s bootstrap_key_input <&3
     printf '\n' >&3
     if [[ -z "$bootstrap_key_input" ]]; then

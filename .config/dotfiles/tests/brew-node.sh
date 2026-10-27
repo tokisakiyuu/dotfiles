@@ -48,13 +48,13 @@ brew() {
 }
 original_path=$PATH
 if ! install_brewfile "$stage/Brewfile" > "$stage/after.out" 2>&1; then cat "$stage/after.out" >&2; exit 1; fi
-[[ $(wc -l < "$fixture_bin/installed") == 1 && "$PATH" == "$original_path" ]]
+[[ $(wc -l < "$fixture_bin/installed") -eq 1 && "$PATH" == "$original_path" ]]
 cmp -s "$stage/Brewfile" "$stage/original"
 echo 'PASS: the setup helper runs real Bundle with real Node, executes the npm fixture, preserves PATH and leaves the snapshot unchanged.'
 rm "$fixture_bin/installed"
 # A second invocation must also work without editing the saved Brewfile.
 install_brewfile "$stage/Brewfile" > "$stage/repeat.out" 2>&1
-[[ $(wc -l < "$fixture_bin/installed") == 1 ]]
+[[ $(wc -l < "$fixture_bin/installed") -eq 1 ]]
 cmp -s "$stage/Brewfile" "$stage/original"
 echo 'PASS: the Node PATH fix works on repeated initialization without writing global configuration or installing real npm packages.'
 rm "$fixture_bin/installed"

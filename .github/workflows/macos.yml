@@ -21,7 +21,6 @@ env:
   HOMEBREW_NO_ASK: '1'
   HOMEBREW_NO_ANALYTICS: '1'
   HOMEBREW_NO_AUTO_UPDATE: '1'
-  GIT_CONFIG_GLOBAL: /dev/null
 
 jobs:
   regression:
@@ -32,6 +31,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           persist-credentials: false
+          set-safe-directory: false
       - name: Install test tools
         run: |
           mkdir -p "$RUNNER_TEMP/dotfiles-logs"
@@ -69,6 +69,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           persist-credentials: false
+          set-safe-directory: false
       - name: Install fixture encryption tool
         run: |
           mkdir -p "$RUNNER_TEMP/dotfiles-logs"

@@ -38,7 +38,9 @@ export HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_ANALYTICS=1 HOMEBREW_NO_ASK=1
 export PATH="$fixture_bin:/usr/bin:/bin:/usr/sbin:/sbin"
 unset HOMEBREW_BREW_FILE HOMEBREW_PATH
 result=0
-"$brew_bin" bundle install --no-upgrade --file="$stage/Brewfile" > "$stage/before.out" 2>&1 || result=$?
+# Verbose execution also avoids Bundle's unversioned opt/node fallback, which
+# could mask the missing versioned Node path on preprovisioned CI runners.
+"$brew_bin" bundle install --verbose --no-upgrade --file="$stage/Brewfile" > "$stage/before.out" 2>&1 || result=$?
 [[ "$result" != 0 && ! -e "$fixture_bin/installed" ]]
 grep -Fq 'node: No such file or directory' "$stage/before.out"
 echo 'PASS: real Homebrew Bundle reproduces missing node despite node@24 being in the caller PATH; npm writes are stubbed.'

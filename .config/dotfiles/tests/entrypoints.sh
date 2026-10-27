@@ -41,6 +41,10 @@ for path in bootstrap.sh setup.sh rotate-key.sh; do
     /bin/bash "$metadata/$path" --help > "$stage/help.out"
     grep -Fq 'Usage:' "$stage/help.out"
 done
+# Help must work from a checkout before anything is installed into the home.
+/bin/bash -u -c 'source "$1"; setup_dotfiles "$2" --help' \
+    setup-help "$metadata/setup.sh" "$stage/not-installed" > "$stage/setup-help.out"
+grep -Fq 'Usage: setup.sh' "$stage/setup-help.out"
 /bin/bash "$metadata/dotfile.sh" help > "$stage/help.out"
 grep -Fq 'Usage:' "$stage/help.out"
 /bin/bash "$root/.config/tmux/scripts/agent-status.sh" --help > "$stage/help.out"

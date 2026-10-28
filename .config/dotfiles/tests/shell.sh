@@ -82,6 +82,7 @@ exit 0
 FISH
 run_session
 workspace=$(cat "$stage/visited")
+[[ "$workspace" == "$fixture/.local/state/dotfiles/shell.pending/"* ]]
 [[ ! -e "$workspace" && ! -e "$fixture/.local/state/dotfiles/shell.pending" ]]
 g show HEAD:README.md | grep -Fq 'edited from temporary shell'
 g cat-file -e HEAD:.github/workflows/added.yml
@@ -120,6 +121,34 @@ printf 'exit 0\n' > "$stage/commands.fish"
 run_session
 [[ ! -e "$workspace" ]]
 echo 'PASS: a failing subshell retains its workspace and a later clean exit completes cleanup.'
+
+cat > "$stage/commands.fish" <<'FISH'
+printf 'stashed fixture\n' >> README.md
+git stash push -m 'Retained stash fixture'; or exit 99
+exit 0
+FISH
+bad_session
+workspace=$(cat "$stage/visited")
+[[ -d "$workspace" ]]
+cat > "$stage/commands.fish" <<'FISH'
+git stash pop; and git add README.md; and git commit -m 'Apply retained stash'; or exit 99
+exit 0
+FISH
+run_session
+[[ ! -e "$workspace" ]]
+cat > "$stage/commands.fish" <<'FISH'
+git switch -c shell-branch-fixture; or exit 99
+printf 'extra branch fixture\n' >> README.md
+git add README.md; and git commit -m 'Retained branch fixture'; and git switch main; or exit 99
+exit 0
+FISH
+bad_session
+workspace=$(cat "$stage/visited")
+[[ -d "$workspace" ]]
+printf 'git merge --ff-only shell-branch-fixture; or exit 99\nexit 0\n' > "$stage/commands.fish"
+run_session
+[[ ! -e "$workspace" ]]
+echo 'PASS: stashes and additional unmerged branches prevent cleanup; applying or merging them allows a safe retry.'
 
 cat > "$stage/commands.fish" <<'FISH'
 git --git-dir="$DOTFILES_TEST_SOURCE/.dotfiles.git" --work-tree="$DOTFILES_TEST_SOURCE" -C "$DOTFILES_TEST_SOURCE" commit -m 'Concurrent HOME commit'; or exit 99

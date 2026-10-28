@@ -28,12 +28,13 @@ shell_prepare() {
     mkdir "$shell_pending"
     printf '%s\n' "$branch" > "$shell_pending/branch"
     shell_source_git rev-parse HEAD > "$shell_pending/base"
-    shell_workspace=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-shell.XXXXXX")
+    shell_workspace=$(mktemp -d "$shell_pending/dotfiles-shell.XXXXXX")
     shell_workspace=$(cd "$shell_workspace" && pwd -P)
     printf '%s\n' "$shell_workspace" > "$shell_pending/workspace"
     # Independent objects and index prevent commands in the shell from changing
     # the HOME repository until the clean, fast-forward import on exit.
     command git clone --bare --no-hardlinks -- "$shell_repository" "$shell_workspace/.dotfiles.git"
+    shell_temporary_git for-each-ref --format='%(objectname) %(refname)' refs/heads/ > "$shell_pending/initial-heads"
     shell_temporary_git config --local core.bare false
     shell_temporary_git config --local core.worktree "$shell_workspace"
     shell_temporary_git config --local dotfiles.fullWorktree true
@@ -65,13 +66,26 @@ shell_prepare() {
 }
 
 shell_import() {
-    local base tip branch reference
+    local base tip branch reference object
     branch=$(cat "$shell_pending/branch")
     base=$(cat "$shell_pending/base")
     [[ $(shell_source_git symbolic-ref --quiet HEAD) == "$branch" ]] || { shell_error 'The HOME branch changed; the temporary workspace was retained.'; return 1; }
+    [[ $(shell_temporary_git symbolic-ref --quiet HEAD) == "$branch" ]] || {
+        shell_error 'Return to the original branch before exiting. Workspace retained.'; return 1;
+    }
+    if shell_temporary_git rev-parse --verify --quiet refs/stash >/dev/null; then
+        shell_error 'Stashes remain. Apply or drop them before exiting; workspace retained.'; return 1
+    fi
     /bin/bash "$shell_metadata/key-file.sh" matches "$shell_metadata/git-crypt.key" \
         "$shell_workspace/.dotfiles.git/git-crypt/keys/default" || return 1
     tip=$(shell_temporary_git rev-parse HEAD)
+    shell_temporary_git for-each-ref --format='%(objectname) %(refname)' refs/heads/ > "$shell_pending/current-heads" || return 1
+    while read -r object reference; do
+        if grep -Fxq "$object $reference" "$shell_pending/initial-heads"; then continue; fi
+        shell_temporary_git merge-base --is-ancestor "$object" "$tip" || {
+            shell_error 'An additional branch contains unmerged commits. Workspace retained.'; return 1;
+        }
+    done < "$shell_pending/current-heads"
     reference="refs/dotfiles/shell/$(basename "$shell_workspace")"
     shell_temporary_git merge-base --is-ancestor "$base" "$tip" || { shell_error 'The session rewrote its base history; the workspace was retained.'; return 1; }
     GIT_DIR="$shell_workspace/.dotfiles.git" GIT_WORK_TREE="$shell_workspace" \
@@ -117,6 +131,9 @@ shell_main() {
         [[ $(shell_temporary_git config --local --get dotfiles.sessionSource) == "$shell_repository" ]] || {
             shell_error 'The retained workspace belongs to another repository.'; return 1;
         }
+        if [[ ! -f "$shell_pending/initial-heads" ]]; then
+            shell_source_git for-each-ref --format='%(objectname) %(refname)' refs/heads/ > "$shell_pending/initial-heads"
+        fi
         echo 'Resuming the retained temporary workspace.'
     else
         shell_prepare

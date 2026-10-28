@@ -1,0 +1,93 @@
+name: macOS dotfiles
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-dotfiles-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: /bin/bash --noprofile --norc -eo pipefail {0}
+
+env:
+  HOMEBREW_NO_ASK: '1'
+  HOMEBREW_NO_ANALYTICS: '1'
+  HOMEBREW_NO_AUTO_UPDATE: '1'
+
+jobs:
+  regression:
+    name: Bash and encryption regressions
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+          set-safe-directory: false
+      - name: Install test tools
+        run: |
+          mkdir -p "$RUNNER_TEMP/dotfiles-logs"
+          brew install git-crypt fish starship zoxide neovim node@24 shellcheck actionlint
+      - name: Validate the workflow
+        run: actionlint .github/workflows/macos.yml
+      - name: Prepare disposable encrypted repository
+        run: |
+          /bin/bash .config/dotfiles/tests/ci-fixture.sh \
+            "$GITHUB_WORKSPACE" "$RUNNER_TEMP/dotfiles-fixture" "$RUNNER_TEMP/dotfiles-ci.key"
+      - name: Check Bash scripts
+        run: |
+          cd "$RUNNER_TEMP/dotfiles-fixture"
+          while IFS= read -r -d '' script_path; do
+            shellcheck -x --shell=bash "$script_path"
+          done < <(git --git-dir=.dotfiles.git ls-files -z -- '*.sh' '.config/dotfiles/hooks/*')
+      - name: Run regression tests
+        run: |
+          /bin/bash "$RUNNER_TEMP/dotfiles-fixture/.config/dotfiles/tests/run.sh" \
+            2>&1 | tee "$RUNNER_TEMP/dotfiles-logs/regression.log"
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: regression-logs
+          path: ${{ runner.temp }}/dotfiles-logs/*.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+  bootstrap:
+    name: macmini-m4 full setup and retry
+    runs-on: macos-26
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+          set-safe-directory: false
+      - name: Install fixture encryption tool
+        run: |
+          mkdir -p "$RUNNER_TEMP/dotfiles-logs"
+          brew install git-crypt
+      - name: Prepare disposable encrypted repository
+        run: |
+          /bin/bash .config/dotfiles/tests/ci-fixture.sh \
+            "$GITHUB_WORKSPACE" "$RUNNER_TEMP/dotfiles-fixture" "$RUNNER_TEMP/dotfiles-ci.key"
+      - name: Bootstrap and repeat full macmini-m4 setup
+        run: |
+          /bin/bash .config/dotfiles/tests/ci-bootstrap.sh \
+            "$RUNNER_TEMP/dotfiles-fixture" "$RUNNER_TEMP/dotfiles-ci.key" \
+            2>&1 | tee "$RUNNER_TEMP/dotfiles-logs/bootstrap.log"
+      - name: Upload installation log
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: macmini-m4-bootstrap-logs
+          path: ${{ runner.temp }}/dotfiles-logs/*.log
+          if-no-files-found: ignore
+          retention-days: 7

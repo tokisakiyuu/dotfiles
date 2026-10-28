@@ -12,10 +12,6 @@ setup_dotfiles() {
     [[ $(uname -s) == Darwin ]] || { echo 'This repository supports macOS only.' >&2; exit 1; }
     local destination=$1
     shift
-    root="${destination}/.config/dotfiles"
-    # shellcheck source=install/lib.sh
-    source "${root}/install/lib.sh"
-    cd "$destination"
     machine=""
     configure_only=0
     install_packages=1
@@ -34,6 +30,10 @@ setup_dotfiles() {
             *) [[ -z "$machine" ]] || { echo 'Only one machine name is allowed.' >&2; exit 2; }; machine="$argument" ;;
         esac
     done
+    root="${destination}/.config/dotfiles"
+    # shellcheck source=install/lib.sh
+    source "${root}/install/lib.sh"
+    cd "$destination"
     if [[ -z "$machine" && -r "${root}/machine" ]]; then machine=$(cat "${root}/machine"); fi
     if [[ -z "$machine" ]]; then machine=$(/usr/sbin/scutil --get LocalHostName); fi
     [[ "$machine" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || {

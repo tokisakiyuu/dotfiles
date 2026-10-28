@@ -1,3 +1,4 @@
+tap "anomalyco/tap"
 brew "bash"
 brew "btop"
 brew "bun"
@@ -30,5 +31,7 @@ brew "anomalyco/tap/opencode-v2", trusted: true
 cask "codex"
 cask "font-jetbrains-mono-nerd-font"
 cask "gcloud-cli"
+cask "google-chrome"
+npm "@deepseek-ai/dsh"
 npm "@loongphy/codex-auth"
 npm "corepack"

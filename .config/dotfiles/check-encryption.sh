@@ -28,7 +28,7 @@ done
 
 inspect() {
     local ref=${1:-} entry info name permission object position filter path attribute value
-    local index=0 failed=0 count=0 policy_path reason status header active_key
+    local index=0 failed=0 count=0 policy_path reason status header active_key forbidden
     active_key="$(git rev-parse --absolute-git-dir)/git-crypt/keys/default"
     local names=() objects=() permissions=() positions=() filters=() policies=()
     while IFS= read -r policy_path; do
@@ -58,14 +58,20 @@ inspect() {
     [[ $index == "${#names[@]}" ]] || { echo 'Encryption attribute inspection was incomplete.' >&2; return 1; }
     for ((index=0; index<${#names[@]}; index++)); do
         name=${names[index]}; filter=${filters[index]}; object=${objects[index]}
-        status=''; reason=''
+        status=''; reason=''; forbidden=0
+        case "$name" in
+            .git|.git/*|.dotfiles.git|.dotfiles.git/*|.config/dotfiles/*.key|\
+            .local/state/dotfiles|.local/state/dotfiles/*) forbidden=1 ;;
+        esac
         if [[ "$filter" == git-crypt ]]; then status=protected
         else
             for policy_path in ${policies[@]+"${policies[@]}"}; do if [[ "$name" == "$policy_path" ]]; then status=protected; break; fi; done
         fi
+        if ((forbidden)); then status=protected; fi
         [[ -n "$status" ]] || continue
         count=$((count + 1)); status=encrypted
-        if [[ "$filter" != git-crypt ]]; then reason='encryption attribute is missing'
+        if ((forbidden)); then reason='local keys and repository state must not be tracked'
+        elif [[ "$filter" != git-crypt ]]; then reason='encryption attribute is missing'
         elif [[ ${permissions[index]} != 100644 && ${permissions[index]} != 100755 ]] || [[ ${positions[index]} != 0 ]]; then reason='not a regular, resolved file'
         else
             header=$(git cat-file blob "$object" | { dd bs=1 count=10 2>/dev/null; cat >/dev/null; } | od -An -tx1 | tr -d ' \r\n') || return 1

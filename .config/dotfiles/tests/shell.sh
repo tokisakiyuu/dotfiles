@@ -166,6 +166,21 @@ grep -Fq '[BLOCKED]' "$stage/session.out"
 echo 'PASS: native Git hook bypass cannot import a plaintext private blob; source history is unchanged and the temporary workspace is retained.'
 printf 'git reset --hard HEAD^; or exit 99\nexit 0\n' > "$stage/commands.fish"
 run_session
+head_before=$(g rev-parse HEAD)
+cat > "$stage/commands.fish" <<'FISH'
+git add -f .config/dotfiles/git-crypt.key; or exit 99
+if git commit -m 'Key should be blocked'
+    exit 99
+end
+git -c core.hooksPath=/dev/null commit -m 'Bypassed key fixture'; or exit 99
+exit 0
+FISH
+bad_session
+[[ $(g rev-parse HEAD) == "$head_before" ]]
+grep -Fq 'local keys and repository state must not be tracked' "$stage/session.out"
+printf 'git reset --hard HEAD^; or exit 99\nexit 0\n' > "$stage/commands.fish"
+run_session
+echo 'PASS: native Git cannot accidentally commit local key files through the hook, and bypassed commits cannot import them into HOME.'
 printf 'private addition fixture\n' > "$fixture/.config/fish/conf.d/added.secret.fish"
 cli add --encrypt .config/fish/conf.d/added.secret.fish
 [[ ! -e "$fixture/.gitattributes" && ! -e "$fixture/.gitignore" ]]

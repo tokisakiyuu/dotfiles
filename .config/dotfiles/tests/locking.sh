@@ -4,8 +4,9 @@ set -euo pipefail
 umask 077
 metadata=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 stage=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-lock-test.XXXXXX")
-owner='' worker_pid=''
+owner='' worker_pid='' background_pid=''
 cleanup() {
+    if [[ -n "$background_pid" ]]; then kill "$background_pid" 2>/dev/null || true; fi
     if [[ -n "$owner" ]]; then
         if [[ -n "$worker_pid" ]]; then kill "$worker_pid" 2>/dev/null || true; fi
         kill "$owner" 2>/dev/null || true
@@ -67,3 +68,11 @@ owner='' worker_pid=''
 locked touch "$stage/after-signal"
 [[ -f "$stage/after-signal" ]]
 echo 'PASS: terminating the real worker releases the kernel lock without manual lock-file deletion.'
+# shellcheck disable=SC2016 # The child shell records its own background PID and argument.
+locked /bin/bash -c 'sleep 20 & printf "%s\n" "$!" > "$1"' background-child "$stage/background-pid"
+background_pid=$(cat "$stage/background-pid")
+locked touch "$stage/after-background-child"
+[[ -f "$stage/after-background-child" ]]
+kill "$background_pid"
+background_pid=''
+echo 'PASS: a surviving background child cannot retain the completed session lock.'

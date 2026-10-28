@@ -7,7 +7,8 @@ dotfiles_exec_locked() {
     if [[ -x /usr/bin/lockf ]]; then
         exec /usr/bin/lockf -k -t 0 "$lock_file" "$@"
     elif command -v flock >/dev/null 2>&1; then
-        exec flock -n "$lock_file" "$@"
+        # Keep the lock in the supervising process, not editor/daemon children.
+        exec flock --close -n "$lock_file" "$@"
     else
         echo 'File locking requires lockf (macOS) or flock (Linux).' >&2
         return 1

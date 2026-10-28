@@ -34,6 +34,8 @@ g crypt init > "$stage/keygen.log" 2>&1
 g add -- .gitignore .gitattributes README.md .config
 g add -f -- .github/workflows/fixture.yml
 g commit -qm 'Disposable shell baseline'
+g config remote.origin.url https://github.com/tokisakiyuu/dotfiles.git
+g update-ref refs/remotes/origin/main HEAD
 (
     # shellcheck source=../setup.sh
     source "$fixture/.config/dotfiles/setup.sh"
@@ -67,6 +69,7 @@ g add -- .config/fish/functions/helper.fish
 cat > "$stage/commands.fish" <<'FISH'
 source .config/fish/functions/dotfile.fish
 test -f README.md; and test -f .gitignore; and test -f .github/workflows/fixture.yml; or exit 99
+git rev-parse --verify refs/remotes/origin/main >/dev/null; or exit 99
 printf 'edited from temporary shell\n' >> README.md
 printf 'name: added\n' > .github/workflows/added.yml
 printf '/.config/fish/ignored-ci\n' >> .gitignore

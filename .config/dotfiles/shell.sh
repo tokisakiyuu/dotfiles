@@ -22,7 +22,7 @@ shell_open() {
 }
 
 shell_prepare() {
-    local branch origin setting value
+    local branch origin setting value object reference
     branch=$(shell_source_git symbolic-ref --quiet HEAD) || { shell_error 'Check out a branch before opening a temporary shell.'; return 1; }
     shell_source_git rev-parse --verify HEAD >/dev/null || { shell_error 'Commit the initial repository before opening a temporary shell.'; return 1; }
     mkdir "$shell_pending"
@@ -41,6 +41,10 @@ shell_prepare() {
     printf 'gitdir: .dotfiles.git\n' > "$shell_workspace/.git"
     if origin=$(shell_source_git config --local --get remote.origin.url); then
         shell_temporary_git config --local remote.origin.url "$origin"
+        shell_source_git for-each-ref --format='%(objectname) %(refname)' refs/remotes/origin/ > "$shell_pending/remote-refs"
+        while read -r object reference; do
+            shell_temporary_git update-ref "$reference" "$object"
+        done < "$shell_pending/remote-refs"
     else
         # A session must never push directly into the live HOME bare repository.
         shell_temporary_git remote remove origin

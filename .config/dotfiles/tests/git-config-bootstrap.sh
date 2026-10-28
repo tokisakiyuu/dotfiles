@@ -5,6 +5,8 @@ set -euo pipefail
 umask 077
 metadata=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 live=$(cd "$metadata/../.." && pwd -P)
+# shellcheck source=../install/worktree.sh
+source "$metadata/install/worktree.sh"
 stage=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-config-bootstrap.XXXXXX")
 trap 'rm -rf -- "$stage"' EXIT
 stage=$(cd "$stage" && pwd -P)
@@ -12,7 +14,9 @@ source_root="$stage/source"
 mkdir -p "$source_root/.config/dotfiles" "$source_root/.config/git"
 cp "$metadata"/*.sh "$source_root/.config/dotfiles/"
 cp -R "$metadata/install" "$metadata/hooks" "$source_root/.config/dotfiles/"
-cp "$live/.gitignore" "$live/.gitattributes" "$source_root/"
+for policy_file in .gitignore .gitattributes; do
+    dotfiles_read_policy "$live/.dotfiles.git" "$live" "$policy_file" > "$source_root/$policy_file"
+done
 printf '.config/git/config.secret\n' > "$source_root/.config/dotfiles/private-files"
 printf '[include]\n\tpath = ./config.secret\n' > "$source_root/.config/git/config"
 printf '[user]\n\tname = Bootstrap Fixture\n\temail = bootstrap@example.invalid\n' > "$source_root/.config/git/config.secret"
@@ -22,6 +26,7 @@ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
 g() { command git --git-dir="$source_root/.dotfiles.git" --work-tree="$source_root" -C "$source_root" "$@"; }
 git init --bare -q --initial-branch=main "$source_root/.dotfiles.git"
 g config user.name 'Bootstrap Fixture'
+g config dotfiles.fullWorktree true
 g config user.email bootstrap@example.invalid
 g crypt init > "$stage/init.log" 2>&1
 bash "$metadata/key-file.sh" normalize "$source_root/.dotfiles.git/git-crypt/keys/default" --output "$stage/key"
@@ -33,6 +38,7 @@ make_locked_target() {
     mkdir -p "$target/.local/share/tmux/oh-my-tmux"
     git clone --bare -q "$source_root/.dotfiles.git" "$target/.dotfiles.git"
     git --git-dir="$target/.dotfiles.git" config --local remote.origin.url https://github.com/tokisakiyuu/dotfiles.git
+    git --git-dir="$target/.dotfiles.git" config --local dotfiles.fullWorktree true
     git --git-dir="$target/.dotfiles.git" --work-tree="$target" -C "$target" checkout > "$stage/checkout.log" 2>&1
     printf 'fixture\n' > "$target/.local/share/tmux/oh-my-tmux/.tmux.conf"
     printf 'fixture\n' > "$target/.local/share/tmux/oh-my-tmux/.tmux.conf.local"
@@ -61,6 +67,7 @@ git() {
     if [[ $1 == clone ]]; then
         command git clone --bare -- "$source_repo" "$5"
         command git --git-dir="$5" config --local remote.origin.url "$DOTFILES_REPOSITORY_URL"
+        command git --git-dir="$5" config --local dotfiles.fullWorktree true
         mkdir -p "$destination/.local/share/tmux/oh-my-tmux"
         printf 'fixture\n' > "$destination/.local/share/tmux/oh-my-tmux/.tmux.conf"
         printf 'fixture\n' > "$destination/.local/share/tmux/oh-my-tmux/.tmux.conf.local"

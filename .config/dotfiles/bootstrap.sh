@@ -82,6 +82,19 @@ restore_dotfiles() {
         echo 'The remote contains an unlock key; refusing to use it.' >&2; return 1
     fi
 
+    # Configure the sparse view before the first checkout so project metadata
+    # never needs to be created in a new home. Older clones upgrade in setup.
+    if git --git-dir="$repo" cat-file -e HEAD:.config/dotfiles/install/worktree.sh 2>/dev/null; then
+        local worktree_helper
+        worktree_helper=$(mktemp "$repo/.bootstrap-worktree.XXXXXX")
+        git --git-dir="$repo" show HEAD:.config/dotfiles/install/worktree.sh > "$worktree_helper" || {
+            rm -f "$worktree_helper"; return 1;
+        }
+        # shellcheck disable=SC1090 # Load the helper from the same trusted repository being restored.
+        source "$worktree_helper" || { rm -f "$worktree_helper"; return 1; }
+        rm -f "$worktree_helper"
+        dotfiles_configure_worktree "$repo" "$destination"
+    fi
     # Let Git refuse collisions; never force a checkout over an existing home.
     git --git-dir="$repo" --work-tree="$destination" -C "$destination" checkout
     if [[ -f "$destination/.config/git/config.secret" ]]; then

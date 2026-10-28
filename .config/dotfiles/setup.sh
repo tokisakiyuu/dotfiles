@@ -48,6 +48,12 @@ setup_dotfiles() {
     git_dotfiles config --local core.logAllRefUpdates true
     git_dotfiles config --local commit.template "${destination}/.config/git/commit_template"
     git_dotfiles config --local push.autoSetupRemote true
+    # shellcheck source=install/worktree.sh
+    source "${root}/install/worktree.sh"
+    dotfiles_configure_worktree "${destination}/.dotfiles.git" "$destination"
+    if git_dotfiles rev-parse --verify HEAD >/dev/null 2>&1; then
+        dotfiles_reapply_worktree "${destination}/.dotfiles.git" "$destination"
+    fi
     configure_crypt_diff
     if git_dotfiles config --local --get remote.origin.url >/dev/null; then
         # Bare clones do not create remote-tracking refs or branch upstreams.

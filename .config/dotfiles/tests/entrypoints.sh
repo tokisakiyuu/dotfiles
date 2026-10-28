@@ -37,7 +37,7 @@ for path in "${bash_files[@]}"; do
 done
 printf 'PASS: %d file-dependent scripts reject piped source before executing their bodies.\n' "$guarded"
 
-for path in bootstrap.sh setup.sh rotate-key.sh; do
+for path in bootstrap.sh setup.sh rotate-key.sh shell.sh; do
     /bin/bash "$metadata/$path" --help > "$stage/help.out"
     grep -Fq 'Usage:' "$stage/help.out"
 done
@@ -52,7 +52,7 @@ grep -Fq 'Usage:' "$stage/help.out"
 cat "$metadata/bootstrap.sh" | /bin/bash -s -- --help > "$stage/bootstrap-pipe.out"
 grep -Fq 'Usage:' "$stage/bootstrap-pipe.out"
 
-for path in bootstrap.sh setup.sh rotate-key.sh key-file.sh install/brew.sh install/lib.sh; do
+for path in bootstrap.sh setup.sh rotate-key.sh shell.sh key-file.sh install/brew.sh install/lib.sh install/worktree.sh; do
     /bin/bash -u -c 'source "$1"' source-check "$metadata/$path"
 done
 for path in agent-status.sh agent-status-worker.sh; do

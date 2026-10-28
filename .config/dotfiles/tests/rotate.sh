@@ -6,6 +6,8 @@ set -euo pipefail
 trap 'printf "Rotation fixture failed at line %s (callers: %s)\n" "$LINENO" "${BASH_LINENO[*]}" >&2' ERR
 umask 077
 metadata=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
+# shellcheck source=../install/worktree.sh
+source "$metadata/install/worktree.sh"
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-rotation-test.XXXXXX")
 trap 'rm -rf -- "$test_root"' EXIT
 test_root=$(cd "$test_root" && pwd -P)
@@ -64,12 +66,15 @@ for variant in unborn committed; do
     mkdir -p "$fixture/.config/dotfiles" "$fixture/.config/fish/conf.d"
     cp "$metadata"/*.sh "$fixture/.config/dotfiles/"
     cp -R "$metadata/install" "$metadata/hooks" "$fixture/.config/dotfiles/"
-    cp "$metadata/../../.gitignore" "$metadata/../../.gitattributes" "$fixture/"
+    for policy_file in .gitignore .gitattributes; do
+        dotfiles_read_policy "$metadata/../../.dotfiles.git" "$metadata/../.." "$policy_file" > "$fixture/$policy_file"
+    done
     printf '.config/fish/conf.d/env.secret.fish\n' > "$fixture/.config/dotfiles/private-files"
     printf 'set -gx ROTATION_FIXTURE dummy\n' > "$fixture/.config/fish/conf.d/env.secret.fish"
     printf 'public fixture\n' > "$fixture/README.md"
     git init --bare -q --initial-branch=main "$fixture/.dotfiles.git"
     g config user.name 'Rotation Test'
+    g config dotfiles.fullWorktree true
     g config user.email rotation@example.invalid
     g crypt init > "$test_root/init.log" 2>&1
     identity="$fixture/.config/dotfiles/git-crypt.key"

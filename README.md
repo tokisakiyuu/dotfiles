@@ -61,6 +61,7 @@ dotfile push
 | `dotfile push` | 经过历史加密核验后推送 |
 | `dotfile verify` | 核验暂存区私密文件的原始密文 |
 | `dotfile lazygit` | 打开带加密核验的 lazygit |
+| `dotfile shell` | 在完整临时仓库中启动 fish，编辑项目文件，退出后同步已完成的提交 |
 | `dotfile key status/normalize/unlock` | 检查、规范化或解锁本地文本密钥 |
 | `dotfile key rotate` | 交互式轮换密钥，自动核验、备份及异常回退 |
 
@@ -76,6 +77,34 @@ dotfile push
 初始化地址固定为 `https://github.com/tokisakiyuu/dotfiles.git`。
 `main` 使用 bare Git 架构，`legacy` 保留旧 chezmoi 架构及其历史。
 不要将 `legacy` 的旧布局直接合并到这个 bare 工作目录。
+
+## 编辑仓库项目文件
+
+HOME 使用稀疏检出：配置文件仍是原路径的实体文件；`README.md`、`.github/`、
+`.gitignore` 和 `.gitattributes` 保留在 Git 中，不在 HOME 生成。忽略规则通过
+此仓库专用的 `core.excludesFile` 生效，不修改全局 Git 设置。
+
+编辑这些项目文件时运行：
+
+```fish
+dotfile shell
+# 已进入完整临时仓库；可以使用任意编辑器、git、lazygit 或 dotfile。
+nvim README.md .github/workflows/macos.yml
+dotfile add README.md .github/workflows/macos.yml
+dotfile commit 'docs: update repository instructions'
+exit
+```
+
+临时仓库有独立暂存区，初始内容来自当前分支已提交的版本。`dotfile` 在这个
+子 shell 中自动操作临时仓库，普通 Git 工具也会识别它。退出后，将提交以
+fast-forward 同步回日常仓库，并删除临时目录；不会自动 add、commit 或 push。
+之后仍可在日常环境执行 `dotfile push`。
+
+未提交文件（包括被忽略的新文件）、子 shell 异常退出或同步冲突都会保留临时
+目录。再次执行 `dotfile shell` 会继续同一现场；处理并提交后正常退出即可重试。
+HOME 中已有的修改不会被自动覆盖或丢弃。密钥轮换应在日常环境执行。
+撤回自动生成的策略修改的暂存时，相关文件会临时保留在 HOME，以保留修改；
+重新暂存后恢复隐藏，取消暂存不会丢失加密或忽略规则。
 
 ## Homebrew 自动记录
 
@@ -173,7 +202,7 @@ dotfile add --encrypt ~/.config/example/private.conf
 不重复添加规则。全程不需要修改 `.gitignore`。
 `--encrypt` 用于新增加密声明；已经声明为 `private` 的文件，后续直接
 `dotfile add 文件` 仍会加密，不需要重复带这个选项。`--encrypt` 必须指定文件。
-也可以手动编辑 `.gitattributes`，然后运行
+也可以在 `dotfile shell` 中手动编辑 `.gitattributes`，然后运行
 `dotfile add .gitattributes .config/example/private.conf`。新增属性后，即使文件
 内容没改，add 也会重新应用加密。已有明文历史仍需单独处理，不会被重新加密。
 

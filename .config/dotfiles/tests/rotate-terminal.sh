@@ -6,6 +6,8 @@ set -euo pipefail
 umask 077
 [[ -t 0 ]] || { echo 'Run this interactive rotation check in a terminal.' >&2; exit 2; }
 metadata=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
+# shellcheck source=../install/worktree.sh
+source "$metadata/install/worktree.sh"
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-rotation-ui.XXXXXX")
 trap 'rm -rf -- "$test_root"' EXIT
 test_root=$(cd "$test_root" && pwd -P)
@@ -13,13 +15,16 @@ fixture="$test_root/work"
 mkdir -p "$fixture/.config/dotfiles" "$fixture/.config/fish/conf.d" "$test_root/bin"
 cp "$metadata"/*.sh "$fixture/.config/dotfiles/"
 cp -R "$metadata/install" "$metadata/hooks" "$fixture/.config/dotfiles/"
-cp "$metadata/../../.gitattributes" "$metadata/../../.gitignore" "$fixture/"
+for policy_file in .gitattributes .gitignore; do
+    dotfiles_read_policy "$metadata/../../.dotfiles.git" "$metadata/../.." "$policy_file" > "$fixture/$policy_file"
+done
 printf '.config/fish/conf.d/env.secret.fish\n' > "$fixture/.config/dotfiles/private-files"
 printf 'set -gx ROTATION_FIXTURE dummy\n' > "$fixture/.config/fish/conf.d/env.secret.fish"
 printf 'public fixture\n' > "$fixture/README.md"
 export GIT_CONFIG_GLOBAL=/dev/null
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
 git init --bare -q --initial-branch=main "$fixture/.dotfiles.git"
+git --git-dir="$fixture/.dotfiles.git" config --local dotfiles.fullWorktree true
 g() { command git --git-dir="$fixture/.dotfiles.git" --work-tree="$fixture" -C "$fixture" "$@"; }
 g crypt init > "$test_root/init.log" 2>&1
 fixture_key="$fixture/.config/dotfiles/git-crypt.key"

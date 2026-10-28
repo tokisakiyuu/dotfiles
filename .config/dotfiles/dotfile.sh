@@ -6,7 +6,16 @@ set -euo pipefail
 
 metadata=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
 destination=$(cd "$metadata/../.." && pwd -P)
+if [[ -n ${DOTFILES_SHELL_ROOT:-} ]]; then
+    [[ -d "$DOTFILES_SHELL_ROOT/.dotfiles.git" && -f "$DOTFILES_SHELL_ROOT/.git" ]] || {
+        echo 'Invalid temporary dotfiles workspace.' >&2; exit 1;
+    }
+    destination=$(cd "$DOTFILES_SHELL_ROOT" && pwd -P)
+    metadata="$destination/.config/dotfiles"
+fi
 export GIT_DIR="$destination/.dotfiles.git" GIT_WORK_TREE="$destination"
+# shellcheck source=install/worktree.sh
+source "$metadata/install/worktree.sh"
 
 git_dotfiles() { git --literal-pathspecs --git-dir="$GIT_DIR" --work-tree="$destination" -C "$destination" "$@"; }
 fail() { printf 'dotfile: %s\n' "$*" >&2; exit 1; }
@@ -26,6 +35,7 @@ Usage: dotfile COMMAND
   push                   Push using the encryption guard
   verify                 Verify private ciphertext in the staging area
   lazygit                Open the encryption-aware dotfiles interface
+  shell                  Edit the full repository in a temporary fish shell
   key status             Inspect the text key without showing its contents
   key normalize          Losslessly normalize the local key to text
   key unlock             Unlock or resume an interrupted unlock
@@ -76,7 +86,7 @@ select_paths() {
         for part in ${components[@]+"${components[@]}"}; do absolute="$absolute/$part"; done
         parent=$(dirname "$absolute")
         if [[ -d "$parent" ]]; then absolute="$(cd "$parent" && pwd -P)/$(basename "$absolute")"; fi
-        case "$absolute" in "$destination"/*) name=${absolute#"$destination"/} ;; *) fail 'Paths must be inside your home directory.' ;; esac
+        case "$absolute" in "$destination"/*) name=${absolute#"$destination"/} ;; *) fail 'Paths must be inside the current dotfiles workspace.' ;; esac
         [[ ! "$name" =~ [[:cntrl:]] && "$name" != [[:space:]]* && "$name" != *[[:space:]] ]] || fail 'Use paths without control characters or surrounding whitespace.'
         if [[ "$purpose" == write ]]; then
             if local_only "$name"; then fail "This path is reserved for local data: $name"; fi
@@ -141,12 +151,14 @@ stage_files() {
         fi
     done
     if (($#)); then
-        git_dotfiles add --force -- "$@"
-        if ((${#existing[@]})); then git_dotfiles add --renormalize -- "${existing[@]}"; fi
+        git_dotfiles add --sparse --force -- "$@"
+        if ((${#existing[@]})); then git_dotfiles add --sparse --renormalize -- "${existing[@]}"; fi
     else
+        dotfiles_stage_present_metadata "$GIT_DIR" "$destination"
         git_dotfiles add --renormalize -- .
     fi
     bash "$metadata/check-encryption.sh" --index --quiet
+    dotfiles_reapply_worktree "$GIT_DIR" "$destination"
 }
 
 encrypt_files() {
@@ -156,6 +168,7 @@ encrypt_files() {
         [[ -f "$destination/$name" && ! -L "$destination/$name" && "$name" != \#* ]] || fail 'Encryption requires existing regular files with ordinary path names.'
         case "$name" in .gitignore|.gitattributes|.config/dotfiles/private-files) fail 'Repository policy files must remain readable.' ;; esac
     done
+    dotfiles_materialize_policy "$GIT_DIR" "$destination" .gitattributes
     macro='[attr]private filter=git-crypt diff=git-crypt -text'
     existing_macro=$(grep -E '^\[attr\]private([[:space:]]|$)' "$destination/.gitattributes" || true)
     [[ -z "$existing_macro" || "$existing_macro" == "$macro" ]] || fail 'The private attribute macro has a conflicting definition.'
@@ -180,11 +193,11 @@ if (($#)); then shift; fi
 case "$command_name" in help|-h|--help) help_text; exit 0 ;; esac
 if [[ $# == 1 && ( $1 == --help || $1 == -h ) ]]; then help_text; exit 0; fi
 if [[ ! -d "$GIT_DIR" && ! ( "$command_name" == key && ${1:-} == rotate ) ]]; then
-    fail 'Missing ~/.dotfiles.git; see ~/README.md.'
+    fail 'Missing ~/.dotfiles.git; see the repository README.'
 fi
 if [[ -d "$destination/.local/state/dotfiles/key-rotation.pending" ]]; then
     case "$command_name" in
-        add|remove|unstage|commit|pull|push|lazygit) fail 'A key rotation is pending; run dotfile key rotate to finish, or add --cancel to cancel.' ;;
+        add|remove|unstage|commit|pull|push|lazygit|shell) fail 'A key rotation is pending; run dotfile key rotate to finish, or add --cancel to cancel.' ;;
     esac
 fi
 case "$command_name" in
@@ -212,25 +225,30 @@ case "$command_name" in
     remove)
         (($#)) || fail 'Usage: dotfile remove PATH ...'
         select_paths read "$@"
+        dotfiles_materialize_policy "$GIT_DIR" "$destination" .gitignore
         for name in "${selected[@]}"; do
             rule=$(literal_pattern "$name")
             if [[ -d "$destination/$name" ]]; then rule="$rule/"; fi
             append_rule "$destination/.gitignore" "$rule"
         done
         git_dotfiles rm -r --cached --force --ignore-unmatch -- "${selected[@]}"
-        git_dotfiles add -- .gitignore
+        git_dotfiles add --sparse -- .gitignore
+        dotfiles_reapply_worktree "$GIT_DIR" "$destination"
         echo 'Stopped tracking the selected paths; local files were preserved.' ;;
     unstage)
         select_paths read "$@"
         if ((${#selected[@]} == 0)); then selected=(.); fi
+        dotfiles_preserve_staged_metadata "$GIT_DIR" "$destination" "${selected[@]}"
         if git_dotfiles rev-parse --verify HEAD >/dev/null 2>&1; then
             git_dotfiles restore --staged -- "${selected[@]}"
-        else git_dotfiles rm -r --cached --force --ignore-unmatch -- "${selected[@]}"; fi ;;
+        else git_dotfiles rm -r --cached --force --ignore-unmatch -- "${selected[@]}"; fi
+        dotfiles_refresh_ignores "$GIT_DIR" "$destination" ;;
     commit)
         [[ $# == 1 && -n ${1//[[:space:]]/} ]] || fail "Usage: dotfile commit 'MESSAGE'"
         require_unlocked
         bash "$metadata/check-encryption.sh" --index --quiet
-        git_dotfiles commit -m "$1" ;;
+        git_dotfiles commit -m "$1"
+        dotfiles_reapply_worktree "$GIT_DIR" "$destination" ;;
     log)
         limit=10
         if (($#)); then [[ $# == 2 && $1 == --limit ]] || fail 'Usage: dotfile log [--limit N]'; limit=$2; fi
@@ -240,7 +258,10 @@ case "$command_name" in
     pull|push)
         (($# == 0)) || fail "Usage: dotfile $command_name"
         [[ -n $(git_dotfiles remote) ]] || fail 'No remote configured. Publish this repository before using pull or push.'
-        if [[ "$command_name" == pull ]]; then git_dotfiles pull --ff-only; else git_dotfiles push; fi ;;
+        if [[ "$command_name" == pull ]]; then
+            git_dotfiles pull --ff-only
+            dotfiles_reapply_worktree "$GIT_DIR" "$destination"
+        else git_dotfiles push; fi ;;
     verify)
         (($# == 0)) || fail 'Usage: dotfile verify'
         bash "$metadata/check-encryption.sh" --index ;;
@@ -250,10 +271,16 @@ case "$command_name" in
         config="$metadata/lazygit.yml"
         if [[ -f "$config_dir/config.yml" ]]; then config="$config_dir/config.yml,$config"; fi
         lazygit --git-dir="$GIT_DIR" --work-tree="$destination" --use-config-file="$config" ;;
+    shell)
+        (($# == 0)) || fail 'Usage: dotfile shell'
+        [[ -z ${DOTFILES_SHELL_ROOT:-} ]] || fail 'Already inside a temporary dotfiles shell.'
+        require_unlocked
+        exec /bin/bash "$metadata/shell.sh" ;;
     key)
         (($#)) || fail 'Usage: dotfile key status|normalize|unlock|rotate'
         key_action=$1; shift
         if [[ "$key_action" == rotate ]]; then
+            [[ -z ${DOTFILES_SHELL_ROOT:-} ]] || fail 'Rotate the key from the normal dotfiles workspace.'
             [[ $# == 0 || ( $# == 1 && ( $1 == --cancel || $1 == --help || $1 == -h ) ) ]] || fail 'Usage: dotfile key rotate [--cancel]'
             exec /bin/bash "$metadata/rotate-key.sh" "$@"
         fi

@@ -24,6 +24,7 @@ complete -c dotfile -n __fish_use_subcommand -a pull -d 'Pull with fast-forward 
 complete -c dotfile -n __fish_use_subcommand -a push -d 'Push with encryption checks'
 complete -c dotfile -n __fish_use_subcommand -a verify -d 'Verify staged ciphertext'
 complete -c dotfile -n __fish_use_subcommand -a lazygit -d 'Open dotfiles in lazygit'
+complete -c dotfile -n __fish_use_subcommand -a shell -d 'Edit the full repository in a temporary fish shell'
 complete -c dotfile -n __fish_use_subcommand -a key -d 'Manage the text unlock key'
 complete -c dotfile -n '__fish_dotfile_command key; and test (count (commandline -opc)) -eq 2' -a status -d 'Check the key format without revealing its contents'
 complete -c dotfile -n '__fish_dotfile_command key; and test (count (commandline -opc)) -eq 2' -a normalize -d 'Convert the local key to its lossless text format'

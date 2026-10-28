@@ -33,6 +33,7 @@ git() {
 echo 'Starting headless macmini-m4 bootstrap with real package installation.'
 restore_dotfiles "$identity" macmini-m4 "$HOME" --skip-defaults --keep-shell
 [[ $(cat "$HOME/.config/dotfiles/machine") == macmini-m4 ]]
+[[ ! -e "$HOME/README.md" && ! -e "$HOME/.github" && ! -e "$HOME/.gitignore" && ! -e "$HOME/.gitattributes" ]]
 cmp -s "$identity" "$HOME/.config/dotfiles/git-crypt.key"
 cmp -s "$seed/.config/git/config.secret" "$HOME/.config/git/config.secret"
 [[ -s "$HOME/.local/share/tmux/oh-my-tmux/.tmux.conf" ]]

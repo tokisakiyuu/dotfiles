@@ -7,9 +7,12 @@ trap 'printf "Fixture failed at line %s\n" "$LINENO" >&2' ERR
 umask 077
 test_metadata=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 live=$(cd "$test_metadata/../.." && pwd -P)
+# shellcheck source=../install/worktree.sh
+source "$test_metadata/install/worktree.sh"
 bash "$test_metadata/tests/entrypoints.sh"
 bash "$test_metadata/tests/git-config-bootstrap.sh"
 bash "$test_metadata/tests/brew-node.sh"
+bash "$test_metadata/tests/shell.sh"
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-bash-test.XXXXXX")
 trap 'rm -rf -- "$test_root"' EXIT
 test_root=$(cd "$test_root" && pwd -P)
@@ -18,7 +21,9 @@ mkdir -p "$fixture/.config/dotfiles" "$fixture/.config/brew" "$test_root/fake-bi
 cp "$live"/.config/dotfiles/*.sh "$fixture/.config/dotfiles/"
 cp -R "$live/.config/dotfiles/install" "$live/.config/dotfiles/hooks" "$live/.config/dotfiles/machines" "$fixture/.config/dotfiles/"
 cp "$live/.config/dotfiles/private-files" "$live/.config/dotfiles/lazygit.yml" "$fixture/.config/dotfiles/"
-cp "$live/.gitattributes" "$live/.gitignore" "$live/README.md" "$fixture/"
+for policy_file in .gitattributes .gitignore README.md; do
+    dotfiles_read_policy "$live/.dotfiles.git" "$live" "$policy_file" > "$fixture/$policy_file"
+done
 printf 'brew "fish"\n' > "$fixture/.config/brew/Brewfile.macbook-m4"
 export GIT_CONFIG_GLOBAL=/dev/null
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE NO_COLOR
@@ -51,6 +56,7 @@ while IFS= read -r filename; do
 done < "$fixture/.config/dotfiles/private-files"
 command git init --bare -q --initial-branch=main "$fixture/.dotfiles.git"
 g config user.name 'Disposable test'
+g config dotfiles.fullWorktree true
 g config user.email test@example.invalid
 g config core.hooksPath "$fixture/.config/dotfiles/hooks"
 g config status.showUntrackedFiles no
@@ -282,6 +288,7 @@ git() {
     if [[ $1 == clone ]]; then
         command git clone --bare -- "$source_repo" "$5"
         command git --git-dir="$5" config --local remote.origin.url "$DOTFILES_REPOSITORY_URL"
+        command git --git-dir="$5" config --local dotfiles.fullWorktree true
     elif [[ ${2:-} == fetch ]]; then
         command git "$1" fetch --no-tags "$source_repo" '+refs/heads/main:refs/remotes/origin/main'
     else command git "$@"; fi
@@ -401,6 +408,7 @@ peer="$test_root/peer"
 git clone --bare -q "$fixture/.dotfiles.git" "$central"
 mkdir -p "$peer"
 git clone --bare -q "$central" "$peer/.dotfiles.git"
+git_for "$peer" config --local dotfiles.fullWorktree true
 git_for "$peer" checkout > "$test_root/peer-checkout.out" 2>&1
 cp "$identity" "$peer/.config/dotfiles/git-crypt.key"
 (

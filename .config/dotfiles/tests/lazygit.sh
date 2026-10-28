@@ -25,6 +25,7 @@ run_ui() {
     fixture="$test_root/$kind"
     mkdir -p "$fixture/.config/dotfiles" "$fixture/.config/fish/conf.d" "$fixture/app-config"
     cp "$metadata/dotfile.sh" "$metadata/lazygit.yml" "$fixture/.config/dotfiles/"
+    cp -R "$metadata/install" "$fixture/.config/dotfiles/"
     printf 'disableStartupPopups: true\n' > "$fixture/app-config/config.yml"
     if [[ "$kind" == invalid ]]; then
         sed 's/^      pager:/        pager:/' "$metadata/lazygit.yml" > "$fixture/.config/dotfiles/lazygit.yml"

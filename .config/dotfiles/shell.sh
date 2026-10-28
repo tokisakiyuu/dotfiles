@@ -11,6 +11,8 @@ shell_pending="$shell_root/.local/state/dotfiles/shell.pending"
 shell_workspace=''
 # shellcheck source=install/worktree.sh
 source "$shell_metadata/install/worktree.sh"
+# shellcheck source=install/lib.sh
+source "$shell_metadata/install/lib.sh"
 
 shell_source_git() { command git --git-dir="$shell_repository" --work-tree="$shell_root" -C "$shell_root" "$@"; }
 shell_temporary_git() { command git --git-dir="$shell_workspace/.dotfiles.git" --work-tree="$shell_workspace" -C "$shell_workspace" "$@"; }
@@ -57,11 +59,10 @@ shell_prepare() {
     /bin/bash "$shell_metadata/key-file.sh" normalize "$shell_metadata/git-crypt.key" \
         --output "$shell_workspace/.config/dotfiles/git-crypt.key"
     /bin/bash "$shell_metadata/key-file.sh" unlock "$shell_metadata/git-crypt.key" --destination "$shell_workspace"
-    (
-        # shellcheck source=setup.sh
-        source "$shell_metadata/setup.sh"
-        setup_dotfiles "$shell_workspace" "$(cat "$shell_metadata/machine")" --configure-only
-    )
+    if [[ -f "$shell_metadata/machine" ]]; then
+        cp "$shell_metadata/machine" "$shell_workspace/.config/dotfiles/machine"
+    fi
+    configure_dotfiles_repository "$shell_workspace"
     printf 'ready\n' > "$shell_pending/phase"
 }
 
@@ -163,7 +164,7 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
             [[ $# == 0 ]] || { echo 'Usage: dotfile shell' >&2; exit 2; }
             [[ -t 0 && -t 1 ]] || { echo 'Run dotfile shell from an interactive terminal.' >&2; exit 2; }
             mkdir -p "$(dirname "$shell_pending")"
-            exec /usr/bin/lockf -k -t 0 "${shell_pending}.lock" /bin/bash "$0" --internal-locked ;;
+            dotfiles_exec_locked "${shell_pending}.lock" /bin/bash "$0" --internal-locked ;;
     esac
     shell_main
 fi

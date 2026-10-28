@@ -43,29 +43,7 @@ setup_dotfiles() {
     [[ -d "${destination}/.dotfiles.git" ]] || { echo 'Clone the bare repository first; see README.md.' >&2; exit 1; }
     write_machine "$machine" "${root}/machine"
     git_dotfiles() { git --git-dir="${destination}/.dotfiles.git" --work-tree="$destination" "$@"; }
-    git_dotfiles config --local status.showUntrackedFiles no
-    git_dotfiles config --local core.hooksPath "${root}/hooks"
-    git_dotfiles config --local core.logAllRefUpdates true
-    git_dotfiles config --local commit.template "${destination}/.config/git/commit_template"
-    git_dotfiles config --local push.autoSetupRemote true
-    # shellcheck source=install/worktree.sh
-    source "${root}/install/worktree.sh"
-    dotfiles_configure_worktree "${destination}/.dotfiles.git" "$destination"
-    if git_dotfiles rev-parse --verify HEAD >/dev/null 2>&1; then
-        dotfiles_reapply_worktree "${destination}/.dotfiles.git" "$destination"
-    fi
-    configure_crypt_diff
-    if git_dotfiles config --local --get remote.origin.url >/dev/null; then
-        # Bare clones do not create remote-tracking refs or branch upstreams.
-        git_dotfiles config --local remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
-        local current_branch
-        current_branch=$(git_dotfiles symbolic-ref --quiet --short HEAD || true)
-        if [[ -n "$current_branch" ]]; then
-            git_dotfiles config --local "branch.${current_branch}.remote" origin
-            git_dotfiles config --local "branch.${current_branch}.merge" "refs/heads/${current_branch}"
-        fi
-    fi
-    chmod +x "${root}/hooks/pre-commit" "${root}/hooks/pre-push"
+    configure_dotfiles_repository "$destination"
     if ((configure_only)); then exit 0; fi
 
     identity="${root}/git-crypt.key"

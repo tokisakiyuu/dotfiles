@@ -12,6 +12,7 @@ source "$test_metadata/install/worktree.sh"
 bash "$test_metadata/tests/entrypoints.sh"
 bash "$test_metadata/tests/git-config-bootstrap.sh"
 bash "$test_metadata/tests/brew-node.sh"
+bash "$test_metadata/tests/locking.sh"
 bash "$test_metadata/tests/shell.sh"
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-bash-test.XXXXXX")
 trap 'rm -rf -- "$test_root"' EXIT

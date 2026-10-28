@@ -1,4 +1,47 @@
 #!/usr/bin/env bash
+# shellcheck source-path=SCRIPTDIR
+
+dotfiles_exec_locked() {
+    local lock_file=$1
+    shift
+    if [[ -x /usr/bin/lockf ]]; then
+        exec /usr/bin/lockf -k -t 0 "$lock_file" "$@"
+    elif command -v flock >/dev/null 2>&1; then
+        exec flock -n "$lock_file" "$@"
+    else
+        echo 'File locking requires lockf (macOS) or flock (Linux).' >&2
+        return 1
+    fi
+}
+
+configure_dotfiles_repository() (
+    local repository_root=$1 repository_metadata current_branch
+    repository_metadata="$repository_root/.config/dotfiles"
+    export GIT_CONFIG_GLOBAL=/dev/null
+    git_dotfiles() { git --git-dir="$repository_root/.dotfiles.git" --work-tree="$repository_root" -C "$repository_root" "$@"; }
+    git_dotfiles config --local status.showUntrackedFiles no
+    git_dotfiles config --local core.hooksPath "$repository_metadata/hooks"
+    git_dotfiles config --local core.logAllRefUpdates true
+    git_dotfiles config --local commit.template "$repository_root/.config/git/commit_template"
+    git_dotfiles config --local push.autoSetupRemote true
+    # shellcheck source=worktree.sh
+    source "$repository_metadata/install/worktree.sh"
+    dotfiles_configure_worktree "$repository_root/.dotfiles.git" "$repository_root"
+    if git_dotfiles rev-parse --verify HEAD >/dev/null 2>&1; then
+        dotfiles_reapply_worktree "$repository_root/.dotfiles.git" "$repository_root"
+    fi
+    configure_crypt_diff
+    if git_dotfiles config --local --get remote.origin.url >/dev/null; then
+        # Bare clones do not create remote-tracking refs or branch upstreams.
+        git_dotfiles config --local remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+        current_branch=$(git_dotfiles symbolic-ref --quiet --short HEAD || true)
+        if [[ -n "$current_branch" ]]; then
+            git_dotfiles config --local "branch.${current_branch}.remote" origin
+            git_dotfiles config --local "branch.${current_branch}.merge" "refs/heads/${current_branch}"
+        fi
+    fi
+    chmod +x "$repository_metadata/hooks/pre-commit" "$repository_metadata/hooks/pre-push"
+)
 
 install_brewfile() (
     set -euo pipefail

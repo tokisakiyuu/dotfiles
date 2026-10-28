@@ -1,5 +1,6 @@
 #!/bin/bash
 # shellcheck source-path=SCRIPTDIR
+# shellcheck disable=SC2031 # Repository helpers deliberately isolate their variables in subshells.
 set -euo pipefail
 [[ -n ${BASH_SOURCE[0]:-} ]] || { echo 'This script requires a file path; run it with bash /path/to/script.' >&2; exit 2; }
 trap 'printf "Shell fixture failed at line %s\n" "$LINENO" >&2' ERR
@@ -14,6 +15,8 @@ fixture="$stage/home workspace"
 mkdir -p "$fixture/.config/dotfiles" "$fixture/.config/fish/conf.d" "$fixture/.config/fish/functions" "$fixture/.github/workflows"
 cp "$metadata"/*.sh "$fixture/.config/dotfiles/"
 cp -R "$metadata/install" "$metadata/hooks" "$fixture/.config/dotfiles/"
+# Prove temporary shells do not need the platform-specific setup entry point.
+printf '#!/bin/bash\necho "Unexpected setup invocation." >&2\nexit 91\n' > "$fixture/.config/dotfiles/setup.sh"
 dotfiles_read_policy "$metadata/../../.dotfiles.git" "$metadata/../.." .gitignore > "$fixture/.gitignore"
 cp "$metadata/../../.config/fish/functions/dotfile.fish" "$fixture/.config/fish/functions/"
 printf '[attr]private filter=git-crypt diff=git-crypt -text\n.config/fish/conf.d/env.secret.fish private\n' > "$fixture/.gitattributes"
@@ -37,9 +40,10 @@ g commit -qm 'Disposable shell baseline'
 g config remote.origin.url https://github.com/tokisakiyuu/dotfiles.git
 g update-ref refs/remotes/origin/main HEAD
 (
-    # shellcheck source=../setup.sh
-    source "$fixture/.config/dotfiles/setup.sh"
-    setup_dotfiles "$fixture" macmini-m4 --configure-only
+    # shellcheck source=../install/lib.sh
+    source "$fixture/.config/dotfiles/install/lib.sh"
+    write_machine macmini-m4 "$fixture/.config/dotfiles/machine"
+    configure_dotfiles_repository "$fixture"
 )
 [[ ! -e "$fixture/README.md" && ! -e "$fixture/.gitignore" && ! -e "$fixture/.github" ]]
 [[ ! -e "$fixture/.gitattributes" ]]
@@ -228,14 +232,20 @@ g check-ignore -q .config/fish/conf.d/added.secret.fish
 cli add
 [[ ! -e "$fixture/.gitignore" ]]
 cli commit 'Stage HOME edits before fixture rotation' > "$stage/commit-home.out"
-(
-    # shellcheck source=../rotate-key.sh
-    source "$fixture/.config/dotfiles/rotate-key.sh"
-    rotation_open_terminal() { exec 3>/dev/null; }
-    rotation_ask() { rotation_answer=y; }
-    rotation_main
-) > "$stage/rotate.out" 2>&1
-[[ ! -e "$fixture/README.md" && ! -e "$fixture/.github" && ! -e "$fixture/.gitignore" && ! -e "$fixture/.gitattributes" ]]
-cli verify > "$stage/rotated-encryption.out"
-echo 'PASS: add --encrypt, remove, unstage, add without paths, commit and key rotation all preserve policy edits, sparse metadata and real HOME files.'
+echo 'PASS: add --encrypt, remove, unstage, add without paths and commit preserve policy edits, sparse metadata and real HOME files without invoking macOS setup.'
+if [[ $(uname -s) == Darwin ]]; then
+    cp "$metadata/setup.sh" "$fixture/.config/dotfiles/setup.sh"
+    cli add .config/dotfiles/setup.sh
+    cli commit 'Restore macOS setup before fixture rotation' > "$stage/restore-setup.out"
+    (
+        # shellcheck source=../rotate-key.sh
+        source "$fixture/.config/dotfiles/rotate-key.sh"
+        rotation_open_terminal() { exec 3>/dev/null; }
+        rotation_ask() { rotation_answer=y; }
+        rotation_main
+    ) > "$stage/rotate.out" 2>&1
+    [[ ! -e "$fixture/README.md" && ! -e "$fixture/.github" && ! -e "$fixture/.gitignore" && ! -e "$fixture/.gitattributes" ]]
+    cli verify > "$stage/rotated-encryption.out"
+    echo 'PASS: macOS key rotation also preserves the sparse HOME layout.'
+fi
 echo 'ALL SPARSE WORKSPACE AND TEMPORARY SHELL CHECKS PASSED.'

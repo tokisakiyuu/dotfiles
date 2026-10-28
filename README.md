@@ -95,6 +95,10 @@ dotfile commit 'docs: update repository instructions'
 exit
 ```
 
+`dotfile shell` 支持 macOS 和 Linux，需要 Bash、fish、Git、git-crypt，
+以及 macOS 的 lockf 或 Linux 的 flock。bootstrap/setup 的软件安装与系统设置
+仍针对 macOS；使用此编辑功能不需要恢复 Linux 机器配置。
+
 临时仓库有独立暂存区，初始内容来自当前分支已提交的版本。`dotfile` 在这个
 子 shell 中自动操作临时仓库，普通 Git 工具也会识别它。退出后，将提交以
 fast-forward 同步回日常仓库，并删除临时目录；不会自动 add、commit 或 push。

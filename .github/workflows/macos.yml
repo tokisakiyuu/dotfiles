@@ -91,3 +91,41 @@ jobs:
           path: ${{ runner.temp }}/dotfiles-logs/*.log
           if-no-files-found: ignore
           retention-days: 7
+
+  portable-shell:
+    name: Linux temporary shell and locking
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+          set-safe-directory: false
+      - name: Install shell test tools
+        run: |
+          mkdir -p "$RUNNER_TEMP/dotfiles-logs"
+          sudo apt-get update -qq
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends fish git-crypt shellcheck util-linux
+      - name: Prepare disposable encrypted repository
+        run: |
+          /bin/bash .config/dotfiles/tests/ci-fixture.sh \
+            "$GITHUB_WORKSPACE" "$RUNNER_TEMP/dotfiles-fixture" "$RUNNER_TEMP/dotfiles-ci.key"
+      - name: Check portable Bash scripts
+        run: |
+          shellcheck -x --shell=bash .config/dotfiles/shell.sh .config/dotfiles/install/lib.sh .config/dotfiles/tests/locking.sh .config/dotfiles/tests/shell.sh
+      - name: Test real Linux file locking
+        run: |
+          /bin/bash "$RUNNER_TEMP/dotfiles-fixture/.config/dotfiles/tests/locking.sh" \
+            2>&1 | tee "$RUNNER_TEMP/dotfiles-logs/linux-locking.log"
+      - name: Test temporary shell and recovery on Linux
+        run: |
+          /bin/bash "$RUNNER_TEMP/dotfiles-fixture/.config/dotfiles/tests/shell.sh" \
+            2>&1 | tee "$RUNNER_TEMP/dotfiles-logs/linux-shell.log"
+      - name: Upload Linux test logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: linux-shell-logs
+          path: ${{ runner.temp }}/dotfiles-logs/*.log
+          if-no-files-found: ignore
+          retention-days: 7

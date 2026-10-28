@@ -342,6 +342,14 @@ brew() {
     command /bin/bash -c '[[ ${HOMEBREW_NO_ASK:-} == 1 ]]' || return 99
     printf 'brew %s\n' "$*" >> "$DOTFILES_TEST_STATE/log"
     if [[ ${1:-} == --prefix ]]; then echo /opt/homebrew; fi
+    if [[ ${1:-} == bundle && ${2:-} == install ]]; then
+        # Real Bundle consumes --file=- before installing. Leaving the pipe
+        # unread makes the producer fail nondeterministically under pipefail.
+        cat > "$DOTFILES_TEST_STATE/bundle-input"
+        [[ "$*" == 'bundle install --verbose --no-upgrade --file=-' ]] || return 99
+        head -n 1 "$DOTFILES_TEST_STATE/bundle-input" | command grep -Fq 'ENV["PATH"]' || return 99
+        tail -n +2 "$DOTFILES_TEST_STATE/bundle-input" | cmp -s - "$fixture/.config/brew/Brewfile.macmini-m4" || return 99
+    fi
 }
 bash() { case "$1" in */install/brew.sh) return 0 ;; *) command /bin/bash "$@" ;; esac; }
 curl() { echo download >> "$DOTFILES_TEST_STATE/log"; if [[ -f "$DOTFILES_TEST_STATE/fail-download" ]]; then echo broken; return 22; fi; cat "$DOTFILES_TEST_STATE/archive.tgz"; }

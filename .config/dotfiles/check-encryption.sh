@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
+# shellcheck source-path=SCRIPTDIR
 set -euo pipefail
 [[ -n ${BASH_SOURCE[0]:-} ]] || { echo 'This script requires a file path; run it with bash /path/to/script.' >&2; exit 2; }
 umask 077
 
 metadata=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
+# shellcheck source=install/worktree.sh
+source "$metadata/install/worktree.sh"
+declare -F dotfiles_local_only >/dev/null || { echo 'Local-only path policy is unavailable; finish updating dotfiles.' >&2; exit 1; }
 export GIT_DIR=${GIT_DIR:-"$(cd "$metadata/../.." && pwd -P)/.dotfiles.git"}
 export GIT_WORK_TREE=${GIT_WORK_TREE:-"$(cd "$metadata/../.." && pwd -P)"}
 cd "$GIT_WORK_TREE"
@@ -59,10 +63,7 @@ inspect() {
     for ((index=0; index<${#names[@]}; index++)); do
         name=${names[index]}; filter=${filters[index]}; object=${objects[index]}
         status=''; reason=''; forbidden=0
-        case "$name" in
-            .git|.git/*|.dotfiles.git|.dotfiles.git/*|.config/dotfiles/*.key|\
-            .local/state/dotfiles|.local/state/dotfiles/*) forbidden=1 ;;
-        esac
+        if dotfiles_local_only "$name"; then forbidden=1; fi
         if [[ "$filter" == git-crypt ]]; then status=protected
         else
             for policy_path in ${policies[@]+"${policies[@]}"}; do if [[ "$name" == "$policy_path" ]]; then status=protected; break; fi; done
@@ -70,7 +71,7 @@ inspect() {
         if ((forbidden)); then status=protected; fi
         [[ -n "$status" ]] || continue
         count=$((count + 1)); status=encrypted
-        if ((forbidden)); then reason='local keys and repository state must not be tracked'
+        if ((forbidden)); then reason='local-only paths must not be tracked'
         elif [[ "$filter" != git-crypt ]]; then reason='encryption attribute is missing'
         elif [[ ${permissions[index]} != 100644 && ${permissions[index]} != 100755 ]] || [[ ${positions[index]} != 0 ]]; then reason='not a regular, resolved file'
         else

@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 
+# Repository-relative paths that stay local across CLI and Git hook entry points.
+dotfiles_local_only() {
+    case "$1" in
+        .dotfiles.git|.dotfiles.git/*|.git|.git/*|.claude|.claude/*|\
+        .local/state/dotfiles|.local/state/dotfiles/*|\
+        .local/state/dotfiles-migration|.local/state/dotfiles-migration/*|\
+        .local/share/chezmoi|.local/share/chezmoi/*|\
+        .config/dotfiles/machine|.config/dotfiles/local.fish|\
+        .config/dotfiles/backup-location|.config/fish/fish_variables|\
+        .config/dotfiles/*.key|.config/dotfiles/.git-crypt.key.*|.config/dotfiles/.machine.*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 dotfiles_read_policy() {
     local repository=$1 worktree=$2 filename=$3
     if [[ -f "$worktree/$filename" ]]; then cat "$worktree/$filename";

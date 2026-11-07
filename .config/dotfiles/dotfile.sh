@@ -16,6 +16,7 @@ fi
 export GIT_DIR="$destination/.dotfiles.git" GIT_WORK_TREE="$destination"
 # shellcheck source=install/worktree.sh
 source "$metadata/install/worktree.sh"
+declare -F dotfiles_local_only >/dev/null || { echo 'Local-only path policy is unavailable; finish updating dotfiles.' >&2; exit 1; }
 
 git_dotfiles() { git --literal-pathspecs --git-dir="$GIT_DIR" --work-tree="$destination" -C "$destination" "$@"; }
 fail() { printf 'dotfile: %s\n' "$*" >&2; exit 1; }
@@ -48,19 +49,6 @@ Git subcommands and arbitrary Git options are not forwarded.
 HELP
 }
 
-local_only() {
-    case "$1" in
-        .dotfiles.git|.dotfiles.git/*|.git|.git/*|.claude|.claude/*|\
-        .local/state/dotfiles|.local/state/dotfiles/*|\
-        .local/state/dotfiles-migration|.local/state/dotfiles-migration/*|\
-        .local/share/chezmoi|.local/share/chezmoi/*|\
-        .config/dotfiles/machine|.config/dotfiles/local.fish|\
-        .config/dotfiles/backup-location|.config/fish/fish_variables|\
-        .config/dotfiles/*.key|.config/dotfiles/.git-crypt.key.*|.config/dotfiles/.machine.*) return 0 ;;
-        *) return 1 ;;
-    esac
-}
-
 select_paths() {
     local purpose=$1 argument absolute parent part name index
     shift
@@ -89,7 +77,7 @@ select_paths() {
         case "$absolute" in "$destination"/*) name=${absolute#"$destination"/} ;; *) fail 'Paths must be inside the current dotfiles workspace.' ;; esac
         [[ ! "$name" =~ [[:cntrl:]] && "$name" != [[:space:]]* && "$name" != *[[:space:]] ]] || fail 'Use paths without control characters or surrounding whitespace.'
         if [[ "$purpose" == write ]]; then
-            if local_only "$name"; then fail "This path is reserved for local data: $name"; fi
+            if dotfiles_local_only "$name"; then fail "This path is reserved for local data: $name"; fi
             [[ ! -d "$absolute" ]] || fail 'Name individual files; dotfile add without paths stages tracked changes.'
         fi
         selected[${#selected[@]}]=$name

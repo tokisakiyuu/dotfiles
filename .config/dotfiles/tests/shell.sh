@@ -210,7 +210,7 @@ exit 0
 FISH
 bad_session
 [[ $(g rev-parse HEAD) == "$head_before" ]]
-grep -Fq 'local keys and repository state must not be tracked' "$stage/session.out"
+grep -Fq 'local-only paths must not be tracked' "$stage/session.out"
 printf 'git reset --hard HEAD^; or exit 99\nexit 0\n' > "$stage/commands.fish"
 run_session
 echo 'PASS: native Git cannot accidentally commit local key files through the hook, and bypassed commits cannot import them into HOME.'
@@ -248,4 +248,154 @@ if [[ $(uname -s) == Darwin ]]; then
     cli verify > "$stage/rotated-encryption.out"
     echo 'PASS: macOS key rotation also preserves the sparse HOME layout.'
 fi
+# Exercise the same policy through native Git, including repaired history.
+check_local_only_paths() (
+    trap 'printf "Local-only fixture failed at line %s\n" "$LINENO" >&2' ERR
+    umask 077
+    metadata=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
+    stage=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-local-only.XXXXXX")
+    trap 'rm -rf -- "$stage"' EXIT
+    fixture="$stage/home workspace"
+    remote="$stage/remote.git"
+    mkdir -p "$fixture/.config/dotfiles" "$fixture/.config/fish/conf.d"
+    cp "$metadata"/*.sh "$fixture/.config/dotfiles/"
+    cp -R "$metadata/install" "$metadata/hooks" "$fixture/.config/dotfiles/"
+    # shellcheck source=../install/worktree.sh
+    source "$metadata/install/worktree.sh"
+    dotfiles_read_policy "$metadata/../../.dotfiles.git" "$metadata/../.." .gitignore > "$fixture/.gitignore"
+    printf '[attr]private filter=git-crypt diff=git-crypt -text\n.config/fish/conf.d/env.secret.fish private\n' > "$fixture/.gitattributes"
+    printf '.config/fish/conf.d/env.secret.fish\n' > "$fixture/.config/dotfiles/private-files"
+    printf 'set -gx CI_SECRET dummy\n' > "$fixture/.config/fish/conf.d/env.secret.fish"
+    printf 'Disposable local-only fixture\n' > "$fixture/README.md"
+    export GIT_CONFIG_GLOBAL=/dev/null
+    unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE DOTFILES_SHELL_ROOT
+    g() { command git --git-dir="$fixture/.dotfiles.git" --work-tree="$fixture" -C "$fixture" "$@"; }
+    cli() { (cd "$fixture" && /bin/bash .config/dotfiles/dotfile.sh "$@"); }
+    reject() {
+        local result=0
+        # Bash 3.2's command builtin can trigger errexit even in an if condition.
+        set +e
+        "$@" > "$stage/rejected.out" 2>&1 || result=$?
+        set -e
+        if ((result == 0)); then
+            echo 'A local-only operation unexpectedly succeeded.' >&2; exit 1
+        fi
+    }
+    git init --bare -q --initial-branch=main "$fixture/.dotfiles.git"
+    g config user.name 'Local-only Fixture'
+    g config user.email local-only@example.invalid
+    g config dotfiles.fullWorktree true
+    g config core.hooksPath "$fixture/.config/dotfiles/hooks"
+    g crypt init > "$stage/keygen.out" 2>&1
+    g add --force -- .gitignore .gitattributes README.md .config/dotfiles .config/fish/conf.d/env.secret.fish
+    g commit -qm 'Disposable encrypted baseline'
+    git init --bare -q --initial-branch=main "$remote"
+    g remote add origin "$remote"
+    g push origin main > "$stage/baseline-push.out" 2>&1
+    baseline=$(g rev-parse HEAD)
+    baseline_tree=$(g write-tree)
+
+    # A partially updated working tree must fail closed, even when the old
+    # shared library can be sourced successfully but lacks the new function.
+    cp "$fixture/.config/dotfiles/install/worktree.sh" "$stage/policy-library"
+    printf '# Synthetic incomplete update: no shared policy yet.\n' > "$fixture/.config/dotfiles/install/worktree.sh"
+    reject cli status
+    grep -Fq 'Local-only path policy is unavailable' "$stage/rejected.out"
+    reject g commit --allow-empty -qm 'Must reject an incomplete policy update'
+    grep -Fq 'Local-only path policy is unavailable' "$stage/rejected.out"
+    candidate=$(printf 'Incomplete working-tree policy fixture\n' | g commit-tree "$baseline_tree" -p "$baseline")
+    g update-ref refs/heads/missing-policy-fixture "$candidate"
+    reject g push origin refs/heads/missing-policy-fixture:refs/heads/missing-policy-fixture
+    grep -Fq 'Local-only path policy is unavailable' "$stage/rejected.out"
+    [[ -z $(command git --git-dir="$remote" for-each-ref --format='%(refname)' refs/heads/missing-policy-fixture) ]]
+    g update-ref -d refs/heads/missing-policy-fixture
+    cp "$stage/policy-library" "$fixture/.config/dotfiles/install/worktree.sh"
+    echo 'PASS: an incomplete policy update blocks the CLI, native commits and pushes.'
+
+    # Deliberately force-add ignored files using native Git, as a GUI can do.
+    # All contents are canaries, never the generated or personal unlock key.
+    reserved_paths=(
+        .claude/settings.json
+        .local/state/dotfiles/backup/key.txt
+        .local/state/dotfiles-migration/backup/key.txt
+        .local/share/chezmoi/dot_config/config
+        .config/dotfiles/machine
+        .config/dotfiles/local.fish
+        .config/dotfiles/backup-location
+        .config/fish/fish_variables
+        .config/dotfiles/git-crypt.key
+        .config/dotfiles/nested/fixture.key
+        .config/dotfiles/.git-crypt.key.TEST/key
+        .config/dotfiles/.machine.TEST
+    )
+    for path in "${reserved_paths[@]}"; do
+        mkdir -p "$(dirname "$fixture/$path")"
+        printf 'LOCAL_ONLY_CANARY_NOT_A_REAL_SECRET\n' > "$fixture/$path"
+        reject cli add "$path"
+        grep -Fq 'This path is reserved for local data:' "$stage/rejected.out"
+        g add --force -- "$path"
+        reject g commit -qm 'Must reject a forced local-only file'
+        grep -Fq "[BLOCKED] $path: local-only paths must not be tracked" "$stage/rejected.out"
+        [[ $(g rev-parse HEAD) == "$baseline" ]]
+
+        # Bypass pre-commit with plumbing, then remove the file in the tip.
+        # A real push must still reject the sensitive ancestor commit.
+        bad_tree=$(g write-tree)
+        bad_commit=$(printf 'Bypassed hook with a local-only canary\n' | g commit-tree "$bad_tree" -p "$baseline")
+        repaired_commit=$(printf 'Removed canary from tip\n' | g commit-tree "$baseline_tree" -p "$bad_commit")
+        g update-ref refs/heads/local-only-fixture "$repaired_commit"
+        reject g push origin refs/heads/local-only-fixture:refs/heads/local-only-fixture
+        grep -Fq "$path: local-only paths must not be tracked" "$stage/rejected.out"
+        grep -Fq 'Push blocked:' "$stage/rejected.out"
+        remote_ref=$(command git --git-dir="$remote" for-each-ref --format='%(refname)' refs/heads/local-only-fixture)
+        if [[ -n "$remote_ref" ]]; then
+            echo 'A blocked branch reached the remote.' >&2; exit 1
+        fi
+        g update-ref -d refs/heads/local-only-fixture
+        g restore --staged -- "$path"
+        [[ -f "$fixture/$path" ]]
+    done
+    printf 'PASS: CLI, native pre-commit and real pre-push reject %d local-only paths, including ancestors removed from the tip.\n' "${#reserved_paths[@]}"
+
+    # Index plumbing can also name the bare repository itself; never modify its
+    # actual configuration just to test the guard.
+    blob=$(printf 'LOCAL_ONLY_CANARY_NOT_A_REAL_SECRET\n' | g hash-object -w --stdin)
+    g update-index --add --cacheinfo "100644,$blob,.dotfiles.git/config"
+    reject g commit -qm 'Must reject repository metadata'
+    grep -Fq '[BLOCKED] .dotfiles.git/config:' "$stage/rejected.out"
+    reject cli add .dotfiles.git/config
+    reject cli add .git/config
+    g restore --staged -- .dotfiles.git/config
+
+    # Declaring a reserved file encrypted must not make it eligible for tracking.
+    path=.config/dotfiles/.git-crypt.key.TEST/key
+    cp "$fixture/.gitattributes" "$stage/attributes"
+    printf '\n%s private\n' "$path" >> "$fixture/.gitattributes"
+    g add --force -- .gitattributes "$path"
+    g cat-file blob ":$path" > "$stage/ciphertext"
+    header=$(dd if="$stage/ciphertext" bs=1 count=10 2>/dev/null | od -An -tx1 | tr -d ' \r\n')
+    [[ "$header" == 00474954435259505400 ]]
+    reject g commit -qm 'Must reject an encrypted local-only key'
+    grep -Fq "[BLOCKED] $path: local-only paths must not be tracked" "$stage/rejected.out"
+    cp "$stage/attributes" "$fixture/.gitattributes"
+    g restore --staged -- .gitattributes "$path"
+    echo 'PASS: repository metadata and encrypted temporary keys remain forbidden.'
+
+    # Public paths near reserved names and newly declared private files still work.
+    mkdir -p "$fixture/.config/dotfiles/machines" "$fixture/.config/example"
+    printf '# Public machine helper\n' >> "$fixture/.config/dotfiles/machine.fish"
+    printf '# Public machine settings\n' > "$fixture/.config/dotfiles/machines/fixture.fish"
+    printf 'public example\n' > "$fixture/.config/example/config.secret.example"
+    printf 'private synthetic fixture\n' > "$fixture/.config/example/config.secret"
+    cli add .config/dotfiles/machine.fish .config/dotfiles/machines/fixture.fish .config/example/config.secret.example
+    cli add --encrypt .config/example/config.secret
+    g commit -qm 'Allowed public and encrypted private changes'
+    g push origin main > "$stage/allowed-push.out" 2>&1
+    [[ $(command git --git-dir="$remote" rev-parse main) == "$(g rev-parse HEAD)" ]]
+    g cat-file blob HEAD:.config/example/config.secret > "$stage/ciphertext"
+    g crypt smudge < "$stage/ciphertext" | cmp -s - "$fixture/.config/example/config.secret"
+    echo 'PASS: public machine files, examples and newly encrypted files commit and push with unchanged plaintext contents.'
+)
+check_local_only_paths
+
 echo 'ALL SPARSE WORKSPACE AND TEMPORARY SHELL CHECKS PASSED.'

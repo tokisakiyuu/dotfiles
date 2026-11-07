@@ -246,6 +246,13 @@ dotfile lazygit
 `dotfile add --encrypt` 自动登记；手动通过 `.gitattributes` 标记的文件也会核验加密。
 检查只能保护已标记或列入清单的文件。
 
+CI 会先检查真实提交及其全部可达历史，通过后才创建测试仓库、运行原有回归和
+安装测试。检查会汇总历史中的私密清单和加密属性，避免替换测试数据、删除声明
+或只修复最新版本掩盖历史明文。完整检出中的手动入口是
+`bash .github/scripts/check-source-encryption.sh HEAD`；浅克隆会被拒绝。
+这道检查不需要个人解密密钥，只验证 Git 原始对象的密文格式；解锁后的
+`dotfile verify` 才能进一步验证暂存密文可由本机密钥解密。
+
 ## git-crypt 密钥轮换
 
 只需执行：

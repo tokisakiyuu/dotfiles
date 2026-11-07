@@ -23,8 +23,24 @@ env:
   HOMEBREW_NO_AUTO_UPDATE: '1'
 
 jobs:
+  source-encryption:
+    name: Original committed ciphertext and history
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          set-safe-directory: false
+      - name: Verify original commits before creating any fixtures
+        run: /bin/bash .github/scripts/check-source-encryption.sh HEAD
+      - name: Test rejection of plaintext and removed declarations
+        run: /bin/bash .github/scripts/test-source-encryption.sh
+
   regression:
     name: Bash and encryption regressions
+    needs: source-encryption
     runs-on: macos-26
     timeout-minutes: 30
     steps:
@@ -63,6 +79,7 @@ jobs:
 
   bootstrap:
     name: macmini-m4 full setup and retry
+    needs: source-encryption
     runs-on: macos-26
     timeout-minutes: 120
     steps:
@@ -94,6 +111,7 @@ jobs:
 
   portable-shell:
     name: Linux temporary shell and locking
+    needs: source-encryption
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

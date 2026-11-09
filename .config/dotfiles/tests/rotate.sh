@@ -65,7 +65,7 @@ for variant in unborn committed; do
     fixture="$test_root/$variant workspace"
     mkdir -p "$fixture/.config/dotfiles" "$fixture/.config/fish/conf.d"
     cp "$metadata"/*.sh "$fixture/.config/dotfiles/"
-    cp -R "$metadata/install" "$metadata/hooks" "$fixture/.config/dotfiles/"
+    cp -R "$metadata/bin" "$metadata/install" "$metadata/hooks" "$fixture/.config/dotfiles/"
     for policy_file in .gitignore .gitattributes; do
         dotfiles_read_policy "$metadata/../../.dotfiles.git" "$metadata/../.." "$policy_file" > "$fixture/$policy_file"
     done

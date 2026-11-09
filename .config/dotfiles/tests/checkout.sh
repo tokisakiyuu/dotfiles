@@ -3,22 +3,21 @@
 # shellcheck disable=SC2031 # Repository helpers deliberately isolate their variables in subshells.
 set -euo pipefail
 [[ -n ${BASH_SOURCE[0]:-} ]] || { echo 'This script requires a file path; run it with bash /path/to/script.' >&2; exit 2; }
-trap 'printf "Shell fixture failed at line %s\n" "$LINENO" >&2' ERR
+trap 'printf "Checkout fixture failed at line %s\n" "$LINENO" >&2' ERR
 umask 077
 metadata=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 # shellcheck source=../install/worktree.sh
 source "$metadata/install/worktree.sh"
-stage=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-shell-test.XXXXXX")
-trap 'result=$?; if ((result)) && [[ -f "$stage/session.out" ]]; then cat "$stage/session.out" >&2; fi; rm -rf -- "$stage"; exit "$result"' EXIT
+stage=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-checkout-test.XXXXXX")
+trap 'result=$?; if ((result)) && [[ -f "$stage/checkout.out" ]]; then cat "$stage/checkout.out" >&2; fi; rm -rf -- "$stage"; exit "$result"' EXIT
 stage=$(cd "$stage" && pwd -P)
 fixture="$stage/home workspace"
 mkdir -p "$fixture/.config/dotfiles" "$fixture/.config/fish/conf.d" "$fixture/.config/fish/functions" "$fixture/.github/workflows"
 cp "$metadata"/*.sh "$fixture/.config/dotfiles/"
-cp -R "$metadata/install" "$metadata/hooks" "$fixture/.config/dotfiles/"
-# Prove temporary shells do not need the platform-specific setup entry point.
+cp -R "$metadata/bin" "$metadata/install" "$metadata/hooks" "$fixture/.config/dotfiles/"
+# Prove full checkout does not need the platform-specific setup entry point.
 printf '#!/bin/bash\necho "Unexpected setup invocation." >&2\nexit 91\n' > "$fixture/.config/dotfiles/setup.sh"
 dotfiles_read_policy "$metadata/../../.dotfiles.git" "$metadata/../.." .gitignore > "$fixture/.gitignore"
-cp "$metadata/../../.config/fish/functions/dotfile.fish" "$fixture/.config/fish/functions/"
 printf '[attr]private filter=git-crypt diff=git-crypt -text\n.config/fish/conf.d/env.secret.fish private\n' > "$fixture/.gitattributes"
 printf '.config/fish/conf.d/env.secret.fish\n' > "$fixture/.config/dotfiles/private-files"
 printf 'set -gx CI_SECRET dummy\n' > "$fixture/.config/fish/conf.d/env.secret.fish"
@@ -27,16 +26,16 @@ printf '# helper fixture\n' > "$fixture/.config/fish/functions/helper.fish"
 printf 'README fixture\n' > "$fixture/README.md"
 printf 'name: fixture\n' > "$fixture/.github/workflows/fixture.yml"
 export GIT_CONFIG_GLOBAL=/dev/null
-unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE DOTFILES_SHELL_ROOT
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
 g() { command git --git-dir="$fixture/.dotfiles.git" --work-tree="$fixture" -C "$fixture" "$@"; }
 git init --bare -q --initial-branch=main "$fixture/.dotfiles.git"
-g config user.name 'Shell Fixture'
-g config user.email shell@example.invalid
+g config user.name 'Checkout Fixture'
+g config user.email checkout@example.invalid
 g crypt init > "$stage/keygen.log" 2>&1
 /bin/bash "$metadata/key-file.sh" normalize "$fixture/.dotfiles.git/git-crypt/keys/default" --output "$fixture/.config/dotfiles/git-crypt.key"
 g add -- .gitignore .gitattributes README.md .config
 g add -f -- .github/workflows/fixture.yml
-g commit -qm 'Disposable shell baseline'
+g commit -qm 'Disposable full checkout baseline'
 g config remote.origin.url https://github.com/tokisakiyuu/dotfiles.git
 g update-ref refs/remotes/origin/main HEAD
 (
@@ -50,170 +49,104 @@ g update-ref refs/remotes/origin/main HEAD
 [[ -f "$fixture/.config/fish/config.fish" && ! -L "$fixture/.config/fish/config.fish" ]]
 echo 'PASS: sparse HOME contains real configuration files while project metadata stays tracked and absent.'
 
-cat > "$stage/driver.sh" <<'DRIVER'
-#!/bin/bash
-# shellcheck disable=SC1090 # Fixture source and command file are explicit driver arguments.
-set -euo pipefail
-source "$1/.config/dotfiles/shell.sh"
-export DOTFILES_TEST_COMMANDS=$2 DOTFILES_TEST_VISITED=$3 DOTFILES_TEST_SOURCE=$1
-mkdir -p "$(dirname "$shell_pending")"
-shell_open() {
-    printf '%s\n' "$PWD" > "$DOTFILES_TEST_VISITED"
-    # Real fish/Git/git-crypt, scripted input, no user startup or history writes.
-    command fish --no-config --private < "$DOTFILES_TEST_COMMANDS"
-}
-shell_main
-DRIVER
-run_session() { /bin/bash "$stage/driver.sh" "$fixture" "$stage/commands.fish" "$stage/visited" > "$stage/session.out" 2>&1; }
-bad_session() { if run_session; then echo 'A session expected to retain its workspace succeeded.' >&2; exit 1; fi; }
+remote="$stage/remote.git"
+git init --bare -q --initial-branch=main "$remote"
+g config remote.origin.url "$remote"
+g push origin main > "$stage/baseline-push.out" 2>&1
 cli() { (cd "$fixture" && /bin/bash .config/dotfiles/dotfile.sh "$@"); }
+reject() {
+    local result=0
+    set +e
+    "$@" > "$stage/rejected.out" 2>&1 || result=$?
+    set -e
+    ((result != 0)) || { echo 'An operation expected to fail succeeded.' >&2; exit 1; }
+}
+export TMPDIR="$stage/temporary directories"
+mkdir -p "$TMPDIR" "$fixture/.local/state/dotfiles/shell.pending"
+printf 'Legacy session data remains untouched\n' > "$fixture/.local/state/dotfiles/shell.pending/workspace"
 printf '# unstaged HOME edit\n' >> "$fixture/.config/fish/config.fish"
 printf '# staged HOME edit\n' >> "$fixture/.config/fish/functions/helper.fish"
 g add -- .config/fish/functions/helper.fish
-cat > "$stage/commands.fish" <<'FISH'
-source .config/fish/functions/dotfile.fish
-test -f README.md; and test -f .gitignore; and test -f .github/workflows/fixture.yml; or exit 99
-git rev-parse --verify refs/remotes/origin/main >/dev/null; or exit 99
-printf 'edited from temporary shell\n' >> README.md
-printf 'name: added\n' > .github/workflows/added.yml
-printf '/.config/fish/ignored-ci\n' >> .gitignore
-printf 'set -gx CI_SECRET changed_dummy\n' > .config/fish/conf.d/env.secret.fish
-git add README.md .gitignore; or exit 99
-dotfile add .github/workflows/added.yml .config/fish/conf.d/env.secret.fish; or exit 99
-dotfile diff --staged >/dev/null; or exit 99
-dotfile commit 'Temporary shell changes'; or exit 99
-exit 0
-FISH
-run_session
-workspace=$(cat "$stage/visited")
-[[ "$workspace" == "$fixture/.local/state/dotfiles/shell.pending/"* ]]
-[[ ! -e "$workspace" && ! -e "$fixture/.local/state/dotfiles/shell.pending" ]]
-g show HEAD:README.md | grep -Fq 'edited from temporary shell'
-g cat-file -e HEAD:.github/workflows/added.yml
-[[ ! -e "$fixture/README.md" && ! -e "$fixture/.github" && ! -e "$fixture/.gitignore" ]]
+source_head=$(g rev-parse HEAD)
+source_index=$(g hash-object "$fixture/.dotfiles.git/index")
+workspace=$(cli checkout 2> "$stage/checkout.out")
+w() { git -C "$workspace" "$@"; }
+[[ "$workspace" == "$TMPDIR/dotfiles-checkout."* && -d "$workspace" ]]
+[[ -f "$workspace/README.md" && -f "$workspace/.gitignore" && -f "$workspace/.gitattributes" && -f "$workspace/.github/workflows/fixture.yml" ]]
+[[ $(w rev-parse --show-toplevel) == "$workspace" && $(w rev-parse HEAD) == "$source_head" ]]
+[[ $(w config --get remote.origin.url) == "$remote" && $(w config --get branch.main.remote) == origin ]]
+[[ $(w config --get core.hooksPath) == "$workspace/.config/dotfiles/hooks" ]]
+[[ ! -f "$workspace/.config/dotfiles/setup-was-called" ]]
+[[ -z $(w status --porcelain --untracked-files=all) ]]
+/bin/bash "$metadata/key-file.sh" matches "$fixture/.config/dotfiles/git-crypt.key" "$workspace/.config/dotfiles/git-crypt.key"
+[[ $(cat "$workspace/.config/fish/conf.d/env.secret.fish") == 'set -gx CI_SECRET dummy' ]]
+if w config --get core.sparseCheckout > "$stage/sparse.out"; then [[ $(cat "$stage/sparse.out") != true ]]; fi
+object=${source_head:0:2}/${source_head:2}
+[[ ! "$fixture/.dotfiles.git/objects/$object" -ef "$workspace/.dotfiles.git/objects/$object" ]]
+echo 'PASS: checkout returns a complete unlocked independent repository with native Git, remote tracking and encryption hooks; no terminal or shell initialization is needed.'
+
+printf 'edited using ordinary Git\n' >> "$workspace/README.md"
+printf 'name: added\n' > "$workspace/.github/workflows/added.yml"
+printf '/.config/fish/ignored-ci\n' >> "$workspace/.gitignore"
+printf 'set -gx CI_SECRET changed_dummy\n' > "$workspace/.config/fish/conf.d/env.secret.fish"
+w add README.md .gitignore .config/fish/conf.d/env.secret.fish
+w add --force .github/workflows/added.yml
+w commit -qm 'Ordinary Git changes'
+w cat-file blob HEAD:.config/fish/conf.d/env.secret.fish > "$stage/ciphertext"
+header=$(dd if="$stage/ciphertext" bs=1 count=10 2>/dev/null | od -An -tx1 | tr -d ' \r\n')
+[[ "$header" == 00474954435259505400 ]]
+w push > "$stage/native-push.out" 2>&1
+[[ $(command git --git-dir="$remote" rev-parse main) == "$(w rev-parse HEAD)" ]]
+[[ $(g rev-parse HEAD) == "$source_head" && $(g hash-object "$fixture/.dotfiles.git/index") == "$source_index" ]]
 grep -Fq 'unstaged HOME edit' "$fixture/.config/fish/config.fish"
 g diff --cached --name-only | grep -Fxq .config/fish/functions/helper.fish
+[[ $(cat "$fixture/.config/fish/conf.d/env.secret.fish") == 'set -gx CI_SECRET dummy' ]]
+[[ $(cat "$fixture/.local/state/dotfiles/shell.pending/workspace") == 'Legacy session data remains untouched' ]]
+echo 'PASS: ordinary git add/commit/push encrypts private files and publishes to the configured remote while HOME commits, staging, local edits and legacy session data remain unchanged.'
+
+cli pull > "$stage/pull.out" 2>&1
+[[ $(g rev-parse HEAD) == "$(w rev-parse HEAD)" ]]
+[[ ! -e "$fixture/README.md" && ! -e "$fixture/.github" && ! -e "$fixture/.gitignore" && ! -e "$fixture/.gitattributes" ]]
 grep -Fq changed_dummy "$fixture/.config/fish/conf.d/env.secret.fish"
+grep -Fq 'unstaged HOME edit' "$fixture/.config/fish/config.fish"
+g diff --cached --name-only | grep -Fxq .config/fish/functions/helper.fish
 g check-ignore -q .config/fish/ignored-ci
 cli verify > "$stage/verify.out"
-echo 'PASS: real fish, native Git and dotfile commit share a full temporary view; encrypted changes import safely, HOME edits survive, and clean exit deletes the workspace.'
+echo 'PASS: dotfile pull applies the published maintenance changes, preserves local edits and keeps project metadata out of sparse HOME.'
 
-cat > "$stage/commands.fish" <<'FISH'
-printf 'saved but not staged\n' >> README.md
-printf 'name: forgotten\n' > .github/workflows/forgotten.yml
-exit 0
-FISH
-bad_session
-workspace=$(cat "$stage/visited")
-[[ -f "$workspace/README.md" && -f "$workspace/.github/workflows/forgotten.yml" ]]
-cat > "$stage/commands.fish" <<'FISH'
-source .config/fish/functions/dotfile.fish
-dotfile add README.md .github/workflows/forgotten.yml; or exit 99
-dotfile commit 'Resume saved edits'; or exit 99
-exit 0
-FISH
-run_session
-[[ $(cat "$stage/visited") == "$workspace" && ! -e "$workspace" ]]
-g show HEAD:README.md | grep -Fq 'saved but not staged'
-echo 'PASS: uncommitted and ignored new files are retained, and the next session resumes exactly that workspace.'
-
-printf 'exit 7\n' > "$stage/commands.fish"
-bad_session
-workspace=$(cat "$stage/visited")
-[[ -d "$workspace" ]]
-printf 'exit 0\n' > "$stage/commands.fish"
-run_session
-[[ ! -e "$workspace" ]]
-echo 'PASS: a failing subshell retains its workspace and a later clean exit completes cleanup.'
-
-cat > "$stage/commands.fish" <<'FISH'
-printf 'stashed fixture\n' >> README.md
-git stash push -m 'Retained stash fixture'; or exit 99
-exit 0
-FISH
-bad_session
-workspace=$(cat "$stage/visited")
-[[ -d "$workspace" ]]
-cat > "$stage/commands.fish" <<'FISH'
-git stash pop; and git add README.md; and git commit -m 'Apply retained stash'; or exit 99
-exit 0
-FISH
-run_session
-[[ ! -e "$workspace" ]]
-cat > "$stage/commands.fish" <<'FISH'
-git switch -c shell-branch-fixture; or exit 99
-printf 'extra branch fixture\n' >> README.md
-git add README.md; and git commit -m 'Retained branch fixture'; and git switch main; or exit 99
-exit 0
-FISH
-bad_session
-workspace=$(cat "$stage/visited")
-[[ -d "$workspace" ]]
-printf 'git merge --ff-only shell-branch-fixture; or exit 99\nexit 0\n' > "$stage/commands.fish"
-run_session
-[[ ! -e "$workspace" ]]
-echo 'PASS: stashes and additional unmerged branches prevent cleanup; applying or merging them allows a safe retry.'
-
-cat > "$stage/commands.fish" <<'FISH'
-git --git-dir="$DOTFILES_TEST_SOURCE/.dotfiles.git" --work-tree="$DOTFILES_TEST_SOURCE" -C "$DOTFILES_TEST_SOURCE" commit -m 'Concurrent HOME commit'; or exit 99
-printf 'session diverged\n' >> README.md
-git add README.md; and git commit -m 'Diverged session'; or exit 99
-exit 0
-FISH
-bad_session
-workspace=$(cat "$stage/visited")
-[[ -d "$workspace" && $(g log -1 --format=%s) == 'Concurrent HOME commit' ]]
-cat > "$stage/commands.fish" <<'FISH'
-git fetch "$DOTFILES_TEST_SOURCE/.dotfiles.git" main; and git rebase FETCH_HEAD; or exit 99
-exit 0
-FISH
-run_session
-[[ ! -e "$workspace" && $(g log -1 --format=%s) == 'Diverged session' ]]
-echo 'PASS: concurrent commits block fast-forward without rewriting HOME; resolving inside the retained shell allows a safe retry.'
-
-head_before=$(g rev-parse HEAD)
-cp "$fixture/.config/fish/config.fish" "$stage/home-before-conflict"
-cat > "$stage/commands.fish" <<'FISH'
-printf '# conflicting session edit\n' >> .config/fish/config.fish
-git add .config/fish/config.fish; and git commit -m 'Overlapping edit fixture'; or exit 99
-exit 0
-FISH
-bad_session
-[[ $(g rev-parse HEAD) == "$head_before" ]]
-cmp -s "$fixture/.config/fish/config.fish" "$stage/home-before-conflict"
-printf 'git reset --hard HEAD^; or exit 99\nexit 0\n' > "$stage/commands.fish"
-run_session
-[[ -z $(g for-each-ref --format='%(refname)' refs/dotfiles/shell/) ]]
-echo 'PASS: overlapping HOME edits prevent import without changing HEAD or local bytes; abandoning the temporary commit cleans up its private import ref.'
-
-head_before=$(g rev-parse HEAD)
-cat > "$stage/commands.fish" <<'FISH'
-printf 'set -gx CI_SECRET plaintext_fixture\n' > .config/fish/conf.d/env.secret.fish
-git -c filter.git-crypt.clean=cat -c filter.git-crypt.required=false add .config/fish/conf.d/env.secret.fish; or exit 99
-git -c core.hooksPath=/dev/null commit -m 'Bypassed encryption fixture'; or exit 99
-exit 0
-FISH
-bad_session
-[[ $(g rev-parse HEAD) == "$head_before" ]]
-grep -Fq '[BLOCKED]' "$stage/session.out"
-echo 'PASS: native Git hook bypass cannot import a plaintext private blob; source history is unchanged and the temporary workspace is retained.'
-printf 'git reset --hard HEAD^; or exit 99\nexit 0\n' > "$stage/commands.fish"
-run_session
-head_before=$(g rev-parse HEAD)
-cat > "$stage/commands.fish" <<'FISH'
-git add -f .config/dotfiles/git-crypt.key; or exit 99
-if git commit -m 'Key should be blocked'
-    exit 99
-end
-git -c core.hooksPath=/dev/null commit -m 'Bypassed key fixture'; or exit 99
-exit 0
-FISH
-bad_session
-[[ $(g rev-parse HEAD) == "$head_before" ]]
-grep -Fq 'local-only paths must not be tracked' "$stage/session.out"
-printf 'git reset --hard HEAD^; or exit 99\nexit 0\n' > "$stage/commands.fish"
-run_session
-echo 'PASS: native Git cannot accidentally commit local key files through the hook, and bypassed commits cannot import them into HOME.'
+safe_tip=$(w rev-parse HEAD)
+blob=$(printf 'PLAINTEXT_PRIVATE_CANARY\n' | w hash-object -w --stdin)
+w update-index --cacheinfo "100644,$blob,.config/fish/conf.d/env.secret.fish"
+reject w commit -qm 'Must reject plaintext'
+grep -Fq '[BLOCKED]' "$stage/rejected.out"
+w -c core.hooksPath=/dev/null commit -qm 'Bypassed plaintext fixture'
+reject w push
+grep -Fq 'Push blocked:' "$stage/rejected.out"
+[[ $(command git --git-dir="$remote" rev-parse main) == "$safe_tip" && $(g rev-parse HEAD) == "$safe_tip" ]]
+w reset --hard "$safe_tip" > "$stage/reset.out" 2>&1
+reject /bin/bash "$workspace/.config/dotfiles/dotfile.sh" key rotate
+grep -Fq 'Rotate the key from the normal dotfiles workspace.' "$stage/rejected.out"
+printf 'uncommitted maintenance edit\n' >> "$workspace/README.md"
+[[ -f "$workspace/README.md" ]]
+second_workspace=$("$BASH" "$fixture/.config/dotfiles/checkout.sh" 2> "$stage/second-checkout.out")
+[[ "$second_workspace" != "$workspace" && -f "$workspace/README.md" ]]
+grep -Fq 'uncommitted maintenance edit' "$workspace/README.md"
+reject cli checkout extra
+reject cli shell
+mkdir -p "$fixture/.local/state/dotfiles/key-rotation.pending"
+reject cli checkout
+grep -Fq 'key rotation is pending' "$stage/rejected.out"
+rmdir "$fixture/.local/state/dotfiles/key-rotation.pending"
+g remote remove origin
+reject cli checkout
+grep -Fq 'Configure origin' "$stage/rejected.out"
+g remote add origin "$remote"
+before_failure=$(printf '%s\n' "$TMPDIR"/dotfiles-checkout.*)
+mv "$fixture/.config/dotfiles/git-crypt.key" "$stage/saved.key"
+reject "$BASH" "$fixture/.config/dotfiles/checkout.sh"
+mv "$stage/saved.key" "$fixture/.config/dotfiles/git-crypt.key"
+[[ $(printf '%s\n' "$TMPDIR"/dotfiles-checkout.*) == "$before_failure" ]]
+echo 'PASS: native pre-commit and pre-push reject plaintext even after a hook bypass; independent checkouts retain unfinished edits, and invalid/unsafe requests are refused.'
 printf 'private addition fixture\n' > "$fixture/.config/fish/conf.d/added.secret.fish"
 cli add --encrypt .config/fish/conf.d/added.secret.fish
 [[ ! -e "$fixture/.gitattributes" && ! -e "$fixture/.gitignore" ]]
@@ -259,7 +192,7 @@ check_local_only_paths() (
     remote="$stage/remote.git"
     mkdir -p "$fixture/.config/dotfiles" "$fixture/.config/fish/conf.d"
     cp "$metadata"/*.sh "$fixture/.config/dotfiles/"
-    cp -R "$metadata/install" "$metadata/hooks" "$fixture/.config/dotfiles/"
+    cp -R "$metadata/bin" "$metadata/install" "$metadata/hooks" "$fixture/.config/dotfiles/"
     # shellcheck source=../install/worktree.sh
     source "$metadata/install/worktree.sh"
     dotfiles_read_policy "$metadata/../../.dotfiles.git" "$metadata/../.." .gitignore > "$fixture/.gitignore"
@@ -268,7 +201,7 @@ check_local_only_paths() (
     printf 'set -gx CI_SECRET dummy\n' > "$fixture/.config/fish/conf.d/env.secret.fish"
     printf 'Disposable local-only fixture\n' > "$fixture/README.md"
     export GIT_CONFIG_GLOBAL=/dev/null
-    unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE DOTFILES_SHELL_ROOT
+    unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
     g() { command git --git-dir="$fixture/.dotfiles.git" --work-tree="$fixture" -C "$fixture" "$@"; }
     cli() { (cd "$fixture" && /bin/bash .config/dotfiles/dotfile.sh "$@"); }
     reject() {
@@ -398,4 +331,4 @@ check_local_only_paths() (
 )
 check_local_only_paths
 
-echo 'ALL SPARSE WORKSPACE AND TEMPORARY SHELL CHECKS PASSED.'
+echo 'ALL SPARSE WORKSPACE, FULL CHECKOUT AND GIT POLICY CHECKS PASSED.'

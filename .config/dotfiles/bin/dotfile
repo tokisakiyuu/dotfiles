@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+[[ -n ${BASH_SOURCE[0]:-} ]] || { echo 'This script requires a file path; run dotfile from its executable file.' >&2; exit 2; }
+entry=${BASH_SOURCE[0]}
+while [[ -L "$entry" ]]; do
+    parent=$(cd "$(dirname "$entry")" && pwd -P)
+    target=$(readlink "$entry")
+    case "$target" in /*) entry=$target ;; *) entry="$parent/$target" ;; esac
+done
+metadata=$(cd "$(dirname "$entry")/.." && pwd -P)
+exec /bin/bash "$metadata/dotfile.sh" "$@"

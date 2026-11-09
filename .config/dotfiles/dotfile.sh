@@ -6,13 +6,6 @@ set -euo pipefail
 
 metadata=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
 destination=$(cd "$metadata/../.." && pwd -P)
-if [[ -n ${DOTFILES_SHELL_ROOT:-} ]]; then
-    [[ -d "$DOTFILES_SHELL_ROOT/.dotfiles.git" && -f "$DOTFILES_SHELL_ROOT/.git" ]] || {
-        echo 'Invalid temporary dotfiles workspace.' >&2; exit 1;
-    }
-    destination=$(cd "$DOTFILES_SHELL_ROOT" && pwd -P)
-    metadata="$destination/.config/dotfiles"
-fi
 export GIT_DIR="$destination/.dotfiles.git" GIT_WORK_TREE="$destination"
 # shellcheck source=install/worktree.sh
 source "$metadata/install/worktree.sh"
@@ -36,7 +29,7 @@ Usage: dotfile COMMAND
   push                   Push using the encryption guard
   verify                 Verify private ciphertext in the staging area
   lazygit                Open the encryption-aware dotfiles interface
-  shell                  Edit the full repository in a temporary fish shell
+  checkout               Create an unlocked full checkout for ordinary Git
   key status             Inspect the text key without showing its contents
   key normalize          Losslessly normalize the local key to text
   key unlock             Unlock or resume an interrupted unlock
@@ -185,7 +178,7 @@ if [[ ! -d "$GIT_DIR" && ! ( "$command_name" == key && ${1:-} == rotate ) ]]; th
 fi
 if [[ -d "$destination/.local/state/dotfiles/key-rotation.pending" ]]; then
     case "$command_name" in
-        add|remove|unstage|commit|pull|push|lazygit|shell) fail 'A key rotation is pending; run dotfile key rotate to finish, or add --cancel to cancel.' ;;
+        add|remove|unstage|commit|pull|push|lazygit|checkout) fail 'A key rotation is pending; run dotfile key rotate to finish, or add --cancel to cancel.' ;;
     esac
 fi
 case "$command_name" in
@@ -259,16 +252,15 @@ case "$command_name" in
         config="$metadata/lazygit.yml"
         if [[ -f "$config_dir/config.yml" ]]; then config="$config_dir/config.yml,$config"; fi
         lazygit --git-dir="$GIT_DIR" --work-tree="$destination" --use-config-file="$config" ;;
-    shell)
-        (($# == 0)) || fail 'Usage: dotfile shell'
-        [[ -z ${DOTFILES_SHELL_ROOT:-} ]] || fail 'Already inside a temporary dotfiles shell.'
+    checkout)
+        (($# == 0)) || fail 'Usage: dotfile checkout'
         require_unlocked
-        exec /bin/bash "$metadata/shell.sh" ;;
+        exec /bin/bash "$metadata/checkout.sh" ;;
     key)
         (($#)) || fail 'Usage: dotfile key status|normalize|unlock|rotate'
         key_action=$1; shift
         if [[ "$key_action" == rotate ]]; then
-            [[ -z ${DOTFILES_SHELL_ROOT:-} ]] || fail 'Rotate the key from the normal dotfiles workspace.'
+            if git_dotfiles config --local --get dotfiles.checkoutSource >/dev/null; then fail 'Rotate the key from the normal dotfiles workspace.'; fi
             [[ $# == 0 || ( $# == 1 && ( $1 == --cancel || $1 == --help || $1 == -h ) ) ]] || fail 'Usage: dotfile key rotate [--cancel]'
             exec /bin/bash "$metadata/rotate-key.sh" "$@"
         fi

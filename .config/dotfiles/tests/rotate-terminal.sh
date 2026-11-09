@@ -14,7 +14,7 @@ test_root=$(cd "$test_root" && pwd -P)
 fixture="$test_root/work"
 mkdir -p "$fixture/.config/dotfiles" "$fixture/.config/fish/conf.d" "$test_root/bin"
 cp "$metadata"/*.sh "$fixture/.config/dotfiles/"
-cp -R "$metadata/install" "$metadata/hooks" "$fixture/.config/dotfiles/"
+cp -R "$metadata/bin" "$metadata/install" "$metadata/hooks" "$fixture/.config/dotfiles/"
 for policy_file in .gitattributes .gitignore; do
     dotfiles_read_policy "$metadata/../../.dotfiles.git" "$metadata/../.." "$policy_file" > "$fixture/$policy_file"
 done

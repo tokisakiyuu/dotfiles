@@ -1,13 +1,16 @@
-# macOS dotfiles：bare Git + fish + git-crypt
+# macOS dotfiles：bare Git + git-crypt
 
 仓库位于 `~/.dotfiles.git`，工作目录是家目录。直接修改原位置的文件即可。
 保留 macOS 配置；旧的 Linux 配置及 chezmoi 维护脚本不进入新仓库。
 管理脚本兼容 macOS 自带的 Bash 3.2，使用系统 awk、base64 等工具，不依赖
 Python。初始化中的 Homebrew、系统偏好和登录 shell 设置仍面向 macOS。
+`dotfile` 是独立的 Bash CLI，可以从 Fish、Bash 或 zsh 调用；Fish 配置与补全
+是可选的 shell 集成，不再承担命令入口。
 
 ## 目录
 
 - [本机体验](#本机体验)
+- [命令初始化](#命令初始化)
 - [日常操作](#日常操作)
 - [Homebrew 自动记录](#homebrew-自动记录)
 - [按机器设置环境变量](#按机器设置环境变量)
@@ -21,10 +24,40 @@ Python。初始化中的 Homebrew、系统偏好和登录 shell 设置仍面向 
 
 ## 本机体验
 
-打开一个新的 fish 终端，执行 `dotfile lazygit`。选择已暂存的私密文件，
+打开一个已初始化的终端，执行 `dotfile lazygit`。选择已暂存的私密文件，
 Staged changes 顶部会直接显示 `[ENCRYPTED IN INDEX]`。
 按大写 `E` 可以查看私密文件的完整核验结果。也可以用 `dotfile status`
 和 `dotfile verify` 在命令行查看。
+
+## 命令初始化
+
+可执行入口是 `~/.config/dotfiles/bin/dotfile`，内部调用 Bash 核心脚本。
+将它所在的 bin 目录加入当前 shell 的 PATH 即可使用。
+
+本仓库的 Fish 配置已经包含以下内容；独立配置时也可以直接加入：
+
+```fish
+fish_add_path -g "$HOME/.config/dotfiles/bin"
+```
+
+Bash 在实际加载的启动文件中加入：交互式非登录 shell 使用 `~/.bashrc`；
+macOS 的 Bash 登录 shell 通常使用 `~/.bash_profile`。
+
+```bash
+export PATH="$HOME/.config/dotfiles/bin${PATH:+:$PATH}"
+```
+
+zsh 在 `~/.zshrc` 中加入：
+
+```zsh
+export PATH="$HOME/.config/dotfiles/bin${PATH:+:$PATH}"
+```
+
+无需初始化子命令或 shell 类型变量。只有 bin 目录中的 `dotfile` 进入命令
+搜索范围；它不会把 Fish 的环境配置、函数和快捷键转换成 Bash/zsh 配置。
+
+从旧版本升级后，新开终端即可切换到可执行入口，无需重跑 setup。旧 Fish
+终端中已经加载的同名函数可能仍在内存，直到该终端退出；它仍调用 Bash 核心。
 
 ## 日常操作
 
@@ -61,7 +94,7 @@ dotfile push
 | `dotfile push` | 经过历史加密核验后推送 |
 | `dotfile verify` | 核验暂存区私密文件的原始密文 |
 | `dotfile lazygit` | 打开带加密核验的 lazygit |
-| `dotfile shell` | 在完整临时仓库中启动 fish，编辑项目文件，退出后同步已完成的提交 |
+| `dotfile checkout` | 全量检出到独立临时目录，使用普通 Git 编辑、提交和推送 |
 | `dotfile key status/normalize/unlock` | 检查、规范化或解锁本地文本密钥 |
 | `dotfile key rotate` | 交互式轮换密钥，自动核验、备份及异常回退 |
 
@@ -78,8 +111,8 @@ dotfile push
 加密过滤器、hook 和提交模板均配置在 bare 仓库内，普通 Git 与全局配置不变。
 
 初始化地址固定为 `https://github.com/tokisakiyuu/dotfiles.git`。
-`main` 使用 bare Git 架构，`legacy` 保留旧 chezmoi 架构及其历史。
-不要将 `legacy` 的旧布局直接合并到这个 bare 工作目录。
+`main` 使用 bare Git 架构；旧 chezmoi 架构及历史已迁入独立私有仓库，公开仓库
+不再保留 `legacy` 分支。不要将旧布局直接合并到这个 bare 工作目录。
 
 ## 编辑仓库项目文件
 
@@ -87,32 +120,37 @@ HOME 使用稀疏检出：配置文件仍是原路径的实体文件；`README.m
 `.gitignore` 和 `.gitattributes` 保留在 Git 中，不在 HOME 生成。忽略规则通过
 此仓库专用的 `core.excludesFile` 生效，不修改全局 Git 设置。
 
-编辑这些项目文件时运行：
+维护 `.gitignore`、`.gitattributes`、管理脚本和 CI 等底层代码时，先运行：
 
 ```fish
-dotfile shell
-# 已进入完整临时仓库；可以使用任意编辑器、git、lazygit 或 dotfile。
-nvim README.md .github/workflows/macos.yml
-dotfile add README.md .github/workflows/macos.yml
-dotfile commit 'docs: update repository instructions'
-exit
+dotfile checkout
 ```
 
-`dotfile shell` 支持 macOS 和 Linux，需要 Bash、fish、Git、git-crypt，
-以及 macOS 的 lockf 或 Linux 的 flock。bootstrap/setup 的软件安装与系统设置
-仍针对 macOS；使用此编辑功能不需要恢复 Linux 机器配置。
+命令输出完整检出目录的绝对路径，准备日志写入 stderr。手动进入该目录后，
+使用普通 Git：
 
-临时仓库有独立暂存区，初始内容来自当前分支已提交的版本。`dotfile` 在这个
-子 shell 中自动操作临时仓库，普通 Git 工具也会识别它。退出后，将提交以
-fast-forward 同步回日常仓库，并删除临时目录；不会自动 add、commit 或 push。
-之后仍可在日常环境执行 `dotfile push`。
+```sh
+cd "/命令输出的目录"
+nvim README.md .github/workflows/macos.yml
+git add README.md .github/workflows/macos.yml
+git commit -m 'docs: update repository instructions'
+git push
+```
 
-未提交文件（包括被忽略的新文件）、子 shell 异常退出或同步冲突都会保留临时
-目录。再次执行 `dotfile shell` 会继续同一现场；处理并提交后正常退出即可重试。
-请在进入时的分支完成提交。stash 或额外分支中的未合并提交也会保留临时目录，
-处理后再正常退出；不会自动丢弃这些内容。
+完整副本来自本机当前分支的已提交版本，包含本机尚未推送的提交；HOME 中
+未提交的修改不带入。它拥有独立 Git 对象、暂存区和配置，保留加密过滤器及
+pre-commit/pre-push 检查；origin 沿用日常仓库的远程地址，普通 `git push`
+直接推送到该远程。新增的忽略文件可使用普通 `git add -f` 明确纳入。
 
-HOME 中已有的修改不会被自动覆盖或丢弃。密钥轮换应在日常环境执行。
+命令只准备目录并返回，不启动 shell、切换当前目录或自动同步。目录在命令
+结束后继续保留，由你自行管理；确认提交已经推送后可自行删除。再次运行
+`dotfile checkout` 会创建新的独立副本。
+
+推送后回到日常工作目录运行 `dotfile pull`，即可应用更新；HOME 继续保持稀疏
+检出，不会因此生成 README、CI 和策略文件。密钥轮换仍在日常工作目录执行。
+此维护入口支持 macOS 和 Linux，需要 Bash、Git、git-crypt；bootstrap/setup
+中的软件安装与系统设置仍面向 macOS。
+
 撤回自动生成的策略修改的暂存时，相关文件会临时保留在 HOME，以保留修改；
 重新暂存后恢复隐藏，取消暂存不会丢失加密或忽略规则。
 
@@ -212,9 +250,10 @@ dotfile add --encrypt ~/.config/example/private.conf
 不重复添加规则。全程不需要修改 `.gitignore`。
 `--encrypt` 用于新增加密声明；已经声明为 `private` 的文件，后续直接
 `dotfile add 文件` 仍会加密，不需要重复带这个选项。`--encrypt` 必须指定文件。
-也可以在 `dotfile shell` 中手动编辑 `.gitattributes`，然后运行
-`dotfile add .gitattributes .config/example/private.conf`。新增属性后，即使文件
-内容没改，add 也会重新应用加密。已有明文历史仍需单独处理，不会被重新加密。
+也可以进入 `dotfile checkout` 创建的目录，手动编辑 `.gitattributes`，再运行
+`git add -f .gitattributes .config/example/private.conf`。修改已追踪文件的加密
+属性后，再用 `git add --renormalize .config/example/private.conf` 重新应用过滤器。
+已有明文历史仍需单独处理，不会被重新加密。
 
 ## 在 lazygit 中检查加密状态
 

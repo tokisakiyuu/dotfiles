@@ -63,7 +63,7 @@ jobs:
           cd "$RUNNER_TEMP/dotfiles-fixture"
           while IFS= read -r -d '' script_path; do
             shellcheck -x --shell=bash "$script_path"
-          done < <(git --git-dir=.dotfiles.git ls-files -z -- '*.sh' '.config/dotfiles/hooks/*')
+          done < <(git --git-dir=.dotfiles.git ls-files -z -- '*.sh' '.config/dotfiles/hooks/*' '.config/dotfiles/bin/*')
       - name: Run regression tests
         run: |
           /bin/bash "$RUNNER_TEMP/dotfiles-fixture/.config/dotfiles/tests/run.sh" \
@@ -110,7 +110,7 @@ jobs:
           retention-days: 7
 
   portable-shell:
-    name: Linux temporary shell and locking
+    name: Linux full checkout and locking
     needs: source-encryption
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -119,26 +119,26 @@ jobs:
         with:
           persist-credentials: false
           set-safe-directory: false
-      - name: Install shell test tools
+      - name: Install portable test tools
         run: |
           mkdir -p "$RUNNER_TEMP/dotfiles-logs"
           sudo apt-get update -qq
-          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends fish git-crypt shellcheck util-linux
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git-crypt shellcheck util-linux
       - name: Prepare disposable encrypted repository
         run: |
           /bin/bash .config/dotfiles/tests/ci-fixture.sh \
             "$GITHUB_WORKSPACE" "$RUNNER_TEMP/dotfiles-fixture" "$RUNNER_TEMP/dotfiles-ci.key"
       - name: Check portable Bash scripts
         run: |
-          shellcheck -x --shell=bash .config/dotfiles/shell.sh .config/dotfiles/install/lib.sh .config/dotfiles/tests/locking.sh .config/dotfiles/tests/shell.sh
+          shellcheck -x --shell=bash .config/dotfiles/bin/dotfile .config/dotfiles/dotfile.sh .config/dotfiles/checkout.sh .config/dotfiles/install/lib.sh .config/dotfiles/tests/locking.sh .config/dotfiles/tests/checkout.sh
       - name: Test real Linux file locking
         run: |
           /bin/bash "$RUNNER_TEMP/dotfiles-fixture/.config/dotfiles/tests/locking.sh" \
             2>&1 | tee "$RUNNER_TEMP/dotfiles-logs/linux-locking.log"
-      - name: Test temporary shell and recovery on Linux
+      - name: Test full checkout and native Git on Linux
         run: |
-          /bin/bash "$RUNNER_TEMP/dotfiles-fixture/.config/dotfiles/tests/shell.sh" \
-            2>&1 | tee "$RUNNER_TEMP/dotfiles-logs/linux-shell.log"
+          /bin/bash "$RUNNER_TEMP/dotfiles-fixture/.config/dotfiles/tests/checkout.sh" \
+            2>&1 | tee "$RUNNER_TEMP/dotfiles-logs/linux-checkout.log"
       - name: Upload Linux test logs
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

@@ -13,14 +13,14 @@ bash "$test_metadata/tests/entrypoints.sh"
 bash "$test_metadata/tests/git-config-bootstrap.sh"
 bash "$test_metadata/tests/brew-node.sh"
 bash "$test_metadata/tests/locking.sh"
-bash "$test_metadata/tests/shell.sh"
+bash "$test_metadata/tests/checkout.sh"
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-bash-test.XXXXXX")
 trap 'rm -rf -- "$test_root"' EXIT
 test_root=$(cd "$test_root" && pwd -P)
 fixture="$test_root/source"
 mkdir -p "$fixture/.config/dotfiles" "$fixture/.config/brew" "$test_root/fake-bin"
 cp "$live"/.config/dotfiles/*.sh "$fixture/.config/dotfiles/"
-cp -R "$live/.config/dotfiles/install" "$live/.config/dotfiles/hooks" "$live/.config/dotfiles/machines" "$fixture/.config/dotfiles/"
+cp -R "$live/.config/dotfiles/bin" "$live/.config/dotfiles/install" "$live/.config/dotfiles/hooks" "$live/.config/dotfiles/machines" "$fixture/.config/dotfiles/"
 cp "$live/.config/dotfiles/private-files" "$live/.config/dotfiles/lazygit.yml" "$fixture/.config/dotfiles/"
 for policy_file in .gitattributes .gitignore README.md; do
     dotfiles_read_policy "$live/.dotfiles.git" "$live" "$policy_file" > "$fixture/$policy_file"

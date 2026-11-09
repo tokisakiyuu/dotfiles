@@ -12,6 +12,9 @@ end
 # Native CLI installers use this directory.
 fish_add_path -g $HOME/.local/bin
 
+# Make the standalone dotfile executable available in this Fish session.
+fish_add_path -g "$HOME/.config/dotfiles/bin"
+
 # Terminal shell prompt (installed by Homebrew)
 # https://starship.rs/
 starship init fish | source

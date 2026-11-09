@@ -13,7 +13,7 @@ stage=$(cd "$stage" && pwd -P)
 source_root="$stage/source"
 mkdir -p "$source_root/.config/dotfiles" "$source_root/.config/git"
 cp "$metadata"/*.sh "$source_root/.config/dotfiles/"
-cp -R "$metadata/install" "$metadata/hooks" "$source_root/.config/dotfiles/"
+cp -R "$metadata/bin" "$metadata/install" "$metadata/hooks" "$source_root/.config/dotfiles/"
 for policy_file in .gitignore .gitattributes; do
     dotfiles_read_policy "$live/.dotfiles.git" "$live" "$policy_file" > "$source_root/$policy_file"
 done

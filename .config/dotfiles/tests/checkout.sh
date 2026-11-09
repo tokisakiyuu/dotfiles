@@ -315,19 +315,18 @@ check_local_only_paths() (
     echo 'PASS: repository metadata and encrypted temporary keys remain forbidden.'
 
     # Public paths near reserved names and newly declared private files still work.
-    mkdir -p "$fixture/.config/dotfiles/machines" "$fixture/.config/example"
-    printf '# Public machine helper\n' >> "$fixture/.config/dotfiles/machine.fish"
-    printf '# Public machine settings\n' > "$fixture/.config/dotfiles/machines/fixture.fish"
+    mkdir -p "$fixture/.config/example"
+    printf 'public machine identity example\n' > "$fixture/.config/dotfiles/machine.example"
     printf 'public example\n' > "$fixture/.config/example/config.secret.example"
     printf 'private synthetic fixture\n' > "$fixture/.config/example/config.secret"
-    cli add .config/dotfiles/machine.fish .config/dotfiles/machines/fixture.fish .config/example/config.secret.example
+    cli add .config/dotfiles/machine.example .config/example/config.secret.example
     cli add --encrypt .config/example/config.secret
     g commit -qm 'Allowed public and encrypted private changes'
     g push origin main > "$stage/allowed-push.out" 2>&1
     [[ $(command git --git-dir="$remote" rev-parse main) == "$(g rev-parse HEAD)" ]]
     g cat-file blob HEAD:.config/example/config.secret > "$stage/ciphertext"
     g crypt smudge < "$stage/ciphertext" | cmp -s - "$fixture/.config/example/config.secret"
-    echo 'PASS: public machine files, examples and newly encrypted files commit and push with unchanged plaintext contents.'
+    echo 'PASS: public examples and newly encrypted files commit and push with unchanged plaintext contents.'
 )
 check_local_only_paths
 

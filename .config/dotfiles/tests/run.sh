@@ -20,7 +20,7 @@ test_root=$(cd "$test_root" && pwd -P)
 fixture="$test_root/source"
 mkdir -p "$fixture/.config/dotfiles" "$fixture/.config/brew" "$test_root/fake-bin"
 cp "$live"/.config/dotfiles/*.sh "$fixture/.config/dotfiles/"
-cp -R "$live/.config/dotfiles/bin" "$live/.config/dotfiles/install" "$live/.config/dotfiles/hooks" "$live/.config/dotfiles/machines" "$fixture/.config/dotfiles/"
+cp -R "$live/.config/dotfiles/bin" "$live/.config/dotfiles/install" "$live/.config/dotfiles/hooks" "$fixture/.config/dotfiles/"
 cp "$live/.config/dotfiles/private-files" "$live/.config/dotfiles/lazygit.yml" "$fixture/.config/dotfiles/"
 for policy_file in .gitattributes .gitignore README.md; do
     dotfiles_read_policy "$live/.dotfiles.git" "$live" "$policy_file" > "$fixture/$policy_file"

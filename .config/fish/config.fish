@@ -66,6 +66,3 @@ bind \ez zi-insert
 
 # Command Editor command
 set -gx EDITOR (command -v nvim)
-
-# Apply machine-specific values after the shared configuration.
-source "$HOME/.config/dotfiles/machine.fish"

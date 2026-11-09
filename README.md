@@ -13,7 +13,7 @@ Python。初始化中的 Homebrew、系统偏好和登录 shell 设置仍面向 
 - [命令初始化](#命令初始化)
 - [日常操作](#日常操作)
 - [Homebrew 自动记录](#homebrew-自动记录)
-- [按机器设置环境变量](#按机器设置环境变量)
+- [Fish 配置](#fish-配置)
 - [私密文件与文本密钥](#私密文件原位置明文git-内密文)
 - [lazygit 加密核验](#在-lazygit-中检查加密状态)
 - [密钥轮换与回退](#git-crypt-密钥轮换)
@@ -172,23 +172,11 @@ pre-commit/pre-push 检查；origin 沿用日常仓库的远程地址，普通 `
 函数覆盖 install/uninstall/reinstall/autoremove/tap/untap/upgrade/pin/unpin
 以及修改状态的 bundle 命令。
 
-## 按机器设置环境变量
+## Fish 配置
 
-公共配置是 `~/.config/fish/config.fish`。它最后依次加载：
-
-1. `~/.config/dotfiles/machines/机器名.fish`：受版本控制的机器差异。
-2. `~/.config/dotfiles/local.fish`：可选的本机设置，不进入 Git。
-
-已准备 `macbook-m4.fish` 与 `macmini-m4.fish`，分别对应两台机器的 LocalHostName。
-使用 fish 语法，例如：
-
-```fish
-set -gx EXAMPLE_VARIABLE value
-fish_add_path -g "$HOME/example/bin"
-```
-
-运行时文件 `fish_variables` 不追踪；需要重建的设置写入上述配置文件。
-MacBook 原有的 Ruby 路径已放进它的机器配置。
+两台设备共用 `~/.config/fish/config.fish`，公共环境变量和 PATH 设置写在其中。
+私密变量继续放在受 git-crypt 保护的 `~/.config/fish/conf.d/env.secret.fish`。
+运行时文件 `fish_variables` 不追踪；需要重建的公共设置写入 `config.fish`。
 
 ## 私密文件：原位置明文，Git 内密文
 
